@@ -1,0 +1,41 @@
+name: Research experiment
+description: 仮想プリンの仮説・手順・観察結果を記録します。
+title: "[Research] "
+labels: []
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: 研究の問いと仮説
+      description: 何を確かめたいか、期待する結果は何か。
+    validations:
+      required: true
+  - type: textarea
+    id: inputs
+    attributes:
+      label: 入力と比較条件
+      description: 基準例、変更する特徴、尺度・単位、固定する条件を記載してください。
+    validations:
+      required: true
+  - type: textarea
+    id: method
+    attributes:
+      label: 手順と成功条件
+      description: 他の人が再現できる手順と、何をもって確認できたとするか。
+    validations:
+      required: true
+  - type: textarea
+    id: boundary
+    attributes:
+      label: 責任範囲・依存先・素材の出典
+      description: 必要な連携、利用するデータや素材の出典・利用条件。
+  - type: textarea
+    id: observations
+    attributes:
+      label: 観察結果
+      description: 実験後に追記。日時と環境を示し、観察と解釈を分けてください。
+  - type: textarea
+    id: limitations
+    attributes:
+      label: 解釈・制約・次の実験
+      description: 証明できたことと、まだ分からないこと。
