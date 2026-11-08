@@ -1,4 +1,4 @@
-# 単独HTTP/MCP・Docker・Updater（0.3.1候補）
+# 単独HTTP/MCP・Docker・Updater（0.3.1）
 
 2026-11-08。Javaコアへ直接接続するHTTP/MCPサービスを実装した。Hubへの登録や経由は不要。HTTPの値型を許諾済みの既存基盤から最小限再利用し、HTTP入力制約、Agent資格情報、セッション、MCP実行、配布処理はPudding側で実装する。既存基盤の認証・認可・Kernel・機密設定は含めない。
 
@@ -38,7 +38,7 @@ MCP revision `2025-11-25` のStreamable HTTP・JSON応答を扱う。独立HTTP/
 
 終了した通信セッションへの要求は404。クライアントは新しくinitializeし、変更操作は同じ業務request_idで照合する（[MCP session management](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#session-management)）。セッションあたり要求IDは1000個まで、IDは64bit整数または256文字までの文字列。IDのハッシュだけを重複検査に保持する。上限・期限後は新規initializeを行い、食事の続きはDBから読む。変更操作のrequest_idはMCPの要求IDと別のUUID。同じ業務request_idを再送すると保存済みの結果を返す。更新応答は過去のスナップショットを返し、現在のeffective_ageはgetで読む。
 
-0.3.0は公開済みのdevelopment prereleaseで、実クライアントでの試食・片付けまで受け入れた。ただし繰り返し接続で429が再発し、通信状態をリセットする再起動が必要だった。0.3.1の修正はDB schema・資格情報・9ツールの入力を変更せず、0.3.0からの互換更新候補として検証する。ソースの修正、公開配布、導入先の更新、実トンネルでの連続受入れは別の到達点である。
+0.3.0は公開済みのdevelopment prereleaseで、実クライアントでの試食・片付けまで受け入れた。ただし繰り返し接続で429が再発し、通信状態をリセットする再起動が必要だった。0.3.1はDB schema・資格情報・9ツールの入力を変更せず、0.3.0からの互換更新を検証・公開した。実機更新後は常駐トンネル越しに20回のプリセット取得と2回の既存食事取得が成功し、試食回数・片付け・違反の状態も保持された。ソースの修正、公開配布、導入先の更新、実トンネルでの連続受入れは別の到達点として[進捗](../PROGRESS.md)へ記録する。
 
 入力は本文64KiB、メタデータ16KiB、ヘッダー64個、JSON深さ32・ノード10000まで。重複キー・ヘッダー、不正UTF-8/サロゲート、曖昧なHTTPフレーミングを拒否する。接続は最大16、通信寿命15秒。DBはlock/statement/transactionにも時間制限を持ち、通信切断後の結果は同じrequest_idで照合する。別IDで食べ直さない。
 

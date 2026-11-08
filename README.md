@@ -10,7 +10,7 @@ AI美祥のための、仮想プリン研究所。
 
 プリンの味・香り・温度・口当たりなどを、どのようなデータで表現し、AIとの対話や創作に使えるかを探る実験リポジトリです。最初はプリン一個を記述して比べる、小さな実験から始めます。
 
-**Status: `development` — Java単独HTTP/MCP 0.3.1候補 / Python照合版 0.1.0。** 0.3.0のdevelopment prereleaseをUpdaterで試験導入し、独立トンネル経由で試食と片付けまで確認しました。繰り返し接続で発生する429に対し、0.3.1候補では同じAgentの古い待機中の通信セッションを入れ替えます。修正版の配布・実環境更新・連続受入れは別途確認します。人間の購入・一個ごとの有料承認・OAuth・正式会計・日次運用はこれからです。
+**Status: `development` — Java単独HTTP/MCP 0.3.1 / Python照合版 0.1.0。** [v0.3.1](https://github.com/flamoris-jp/flamoris-pudding/releases/tag/v0.3.1)を公開し、Updaterで0.3.0から互換更新しました。独立トンネル経由で試食と片付けを受け入れ、429対策後は常駐トンネルで20回連続の読み取りと既存2食事の保持を確認しました。長期運用・ホスト再起動・バックアップ復元の受入れ、人間の購入・一個ごとの有料承認・OAuth・正式会計・日次運用はこれからです。
 
 ### 単独サービスと導入経路
 
@@ -53,7 +53,7 @@ JavaのHTTP/MCP・DockerとUpdater候補の手順は上記を参照。以下は�
 
 ### 次に進めること
 
-1. 429対策の0.3.1候補を検証・公開し、Updaterで互換更新する。実トンネルで8回を超える連続操作を再起動なしで受け入れる。
+1. 常駐サービスのホスト再起動・障害復旧、DBバックアップ/復元、TLS証明書更新を受け入れる。0.3.1の互換更新と実トンネルの連続操作は確認済み。
 2. 実クライアントで単独MCPの接続・資格情報の管理・復旧を受け入れる。OAuth専用クライアントへの対応は別に検証する。
 3. 人間アカウントとAgentの管理、一個ごとの有料承認、商品・価格・税区分、模擬決済/返金、会計候補の永続化を実装する。
 4. 日次廃棄・片付け猶予・審査・バックアップ/復元と商用の受入れを進める。
@@ -132,7 +132,7 @@ FLAMORIS Pudding is an experimental research repository for virtual pudding and 
 
 It owns pudding-domain representations and reproducible research records. Conversation, personality, model execution, media generation, rendering, and MCP routing remain with their respective FLAMORIS projects. The original Python/SQLite research core and nine-tool local stdio MCP remain as a reference. A Java domain core and PostgreSQL JDBC adapter now implement typed sessions, durable replay, policy and audit transactions; cross-language verification and an isolated PostgreSQL CI job cover the migration. Purchase deadlines, authored aging, effective-dated tax arithmetic and review-only expiry accounting candidates are tested with fixtures. An independent authenticated HTTP/MCP research service, Docker runtime and Updater candidate generator are implemented. Human accounts/premium approvals, payments, OAuth, automatic scheduling, external ledger posting and real-host rollout remain unimplemented.
 
-**Current state: development; experimental local research harness, 0.1.0.** Parameterized responses are experimental representations, not evidence of human-like taste or subjective experience. No production deployment or premium security guarantee is provided by the local fixture principal.
+**Current state: development; standalone Java HTTP/MCP 0.3.1 and Python research reference 0.1.0.** The development prerelease was installed and compatibly updated through Updater. Tasting/cleanup and 22 consecutive read calls were accepted through a dedicated resident tunnel. Human accounts/premium approvals, OAuth, payments, automatic scheduling and external ledger posting remain unimplemented; long-running and recovery acceptance is pending. Parameterized responses are experimental representations, not evidence of human-like taste or subjective experience.
 
 ## FLAMORIS
 
