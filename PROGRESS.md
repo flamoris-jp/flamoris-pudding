@@ -1,5 +1,13 @@
 # Progress 🍮
 
+## 2026-11-08 — Javaコア・PostgreSQL保存の実装
+
+- Javaへ数値・期限・会計候補・食事セッション・違反/ロックを移植。Python版は照合用として残す。味232通り・期限25条件・状態遷移14応答・会計候補IDの一致を確認。
+- Javaコアの16シナリオと既存Python57テストをローカルで確認。PostgreSQL実DBは専用の隔離CIで検証する設定を追加。
+- JDBCでAgent単位の行ロック、所有範囲、revision、状態/違反/再送/イベントの原子保存を実装。初回DDLを通常実行から分離し、非対応のスキーマ/規則は拒否する。
+- Javaの実行・明示的DB初期化・照合・実DB検証と未実装範囲を[JAVA_MIGRATION](docs/JAVA_MIGRATION.md)へ記録。アプリ/DBは別ホスト、導入更新はUpdaterを使う方針。
+- HTTP/MCP基盤のソース取り込み、Docker、Updater配布、実在Agent認証、商品/決済、配備は未実施。Javaコアは信頼する管理側が設定する合成主体専用。
+
 ## 2026-11-08 — development・独立Dockerサービスの方針
 
 - 開発ステータスをdevelopmentとしてREADMEにも反映。現時点の機能は引き続きローカル研究版0.1.0。

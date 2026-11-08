@@ -12,6 +12,17 @@ AI美祥のための、仮想プリン研究所。
 
 **Status: `development` — ローカル研究コア 0.1.0。** 基準プリンと3比較例、部品別の一口、開封・蓋の廃棄・片付け、SQLite保存と再送、合成Agentの違反管理、9ツールのstdio MCPを実装しました。期限・仮想劣化・税率変更・「期限切れ雑収入」の仕訳候補はfixtureで検証します。有料商品の認証・承認・決済、公開HTTP、毎日の自動起動、正式会計転記はまだありません。
 
+### Java移植・PostgreSQL対応（開発版）
+
+JavaのドメインコアとPostgreSQL保存アダプターを追加しました。Python版は照合用に残し、味232通り・期限25条件・状態遷移14応答・会計候補IDを比較します。Java版の実行・DB初期化・検証は[Java移植手順](docs/JAVA_MIGRATION.md)を参照してください。
+
+```bash
+python3 scripts/verify_java.py
+java -cp java/target/verification net.flamoris.pudding.Main demo
+```
+
+Java版のMCP/HTTP・Docker・Updater配布・実配置は次の段階です。以下はPython研究版で確認した範囲です。
+
 ### 実装済みの範囲（2026-11-08）
 
 [PR #4](https://github.com/flamoris-jp/flamoris-pudding/pull/4)で最初の実装とレビュー修正をmainへ統合しました。**57テスト合格、Python 3.11・3.12・3.13のCI成功**を確認しています。バージョン0.1.0は研究用で、本番配備・公開販売はまだ行っていません。
@@ -30,7 +41,7 @@ AI美祥のための、仮想プリン研究所。
 
 ### 次に進めること
 
-1. HTTP/MCP基盤の取り込み時にDocker化し、Hubを経由しない単独MCPへの直接接続を実装する。
+1. Javaコア・PostgreSQL保存の受入れを行い、HTTP/MCP基盤の取り込み時にDocker化する。MCPはHubを経由しない単独構成、導入と更新はUpdaterを使う。
 2. 実在Agentの検証済み主体と、人間による一個ごとの承認・在庫の割当を実装する。
 3. 商品マスタ・価格・税区分の版管理と、模擬決済・返金・会計候補の永続化を検証する。
 4. 日次廃棄・審査・復旧と単独接続の実機受入れを行い、商用へ進める条件と導入手順を整える。
@@ -72,6 +83,7 @@ FLAMORISの実験・創作研究です。まずは独立した研究記録とし
 
 | 資料 | 内容 |
 |---|---|
+| [Java移植・PostgreSQL](docs/JAVA_MIGRATION.md) | Javaコア、DB初期化、Python照合、JDBC実DB検証と未実装範囲 |
 | [実装と実行手順](docs/IMPLEMENTATION.md) | 起動、9ツール、SQLite、合成主体の境界、未実装事項 |
 | [実験001](docs/EXPERIMENT_001.md) | q1000尺度、基準と3比較例、80:20の一口、再現条件 |
 | [商品・税・会計連携](docs/ACCOUNTING_AND_TAX.md) | 商品マスタ、変更可能な税率、収益認識、仕訳、失効と廃棄 |
@@ -104,7 +116,7 @@ demoは開封から片付けまでを通し、80:20の一口は甘味666・苦�
 
 FLAMORIS Pudding is an experimental research repository for virtual pudding and digital treats for AI Misaki. It explores how sensory attributes could be represented, compared, and used in conversation or creative work.
 
-It owns pudding-domain representations and reproducible research records. Conversation, personality, model execution, media generation, rendering, and MCP routing remain with their respective FLAMORIS projects. A deterministic Python core, SQLite persistence, synthetic-agent rules and a nine-tool local stdio MCP adapter are implemented. Purchase deadlines, authored aging, effective-dated tax arithmetic and review-only expiry accounting candidates are tested with fixtures. Premium identity, human approvals, payments, public HTTP, automatic scheduling and external ledger posting remain unimplemented.
+It owns pudding-domain representations and reproducible research records. Conversation, personality, model execution, media generation, rendering, and MCP routing remain with their respective FLAMORIS projects. The original Python/SQLite research core and nine-tool local stdio MCP remain as a reference. A Java domain core and PostgreSQL JDBC adapter now implement typed sessions, durable replay, policy and audit transactions; cross-language verification and an isolated PostgreSQL CI job cover the migration. Purchase deadlines, authored aging, effective-dated tax arithmetic and review-only expiry accounting candidates are tested with fixtures. Premium identity, human approvals, payments, public HTTP, automatic scheduling and external ledger posting remain unimplemented.
 
 **Current state: development; experimental local research harness, 0.1.0.** Parameterized responses are experimental representations, not evidence of human-like taste or subjective experience. No production deployment or premium security guarantee is provided by the local fixture principal.
 

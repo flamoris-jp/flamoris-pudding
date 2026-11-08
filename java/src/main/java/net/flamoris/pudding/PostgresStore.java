@@ -1,0 +1,128 @@
+package net.flamoris.pudding;
+
+import java.io.*;
+import java.nio.charset.StandardCharsets;
+import java.sql.*;
+import java.time.*;
+import java.util.*;
+import static net.flamoris.pudding.Core.*;
+
+/** JDBC adapter. Principal and fixture clock come from trusted process configuration.
+ * Runtime owns DML only; migration is an explicit separate management action.
+ */
+public final class PostgresStore {
+    @FunctionalInterface public interface Connections {Connection open()throws SQLException;}
+    private final Connections connections;private final String actor;private final Clock clock;
+    private final Lifecycle.Deadlines fixture;
+    public PostgresStore(Connections connections,String actor,Clock clock,Instant fixturePurchase){
+        if(actor==null||!actor.matches("[A-Za-z0-9_.-]{1,80}"))throw new IllegalArgumentException("configured synthetic principal");
+        this.connections=Objects.requireNonNull(connections);this.actor=actor;this.clock=Objects.requireNonNull(clock);
+        fixture=fixturePurchase==null?null:Lifecycle.deadlines(fixturePurchase);
+    }
+    public static void migrate(Connections connections)throws SQLException,IOException {
+        String sql;
+        try(var stream=PostgresStore.class.getResourceAsStream("/db/V001__research.sql")){
+            if(stream==null)throw new IOException("missing migration");sql=new String(stream.readAllBytes(),StandardCharsets.UTF_8);
+        }
+        try(var c=connections.open()){
+            c.setAutoCommit(false);
+            try(var s=c.createStatement()){
+                s.execute("SET LOCAL statement_timeout='30s'");s.execute("SET LOCAL lock_timeout='5s'");
+                // One-time bootstrap only: never silently adopts an existing schema.
+                s.execute(sql);c.commit();
+            }catch(SQLException|RuntimeException e){c.rollback();throw e;}
+        }
+    }
+    private int config(Connection c)throws SQLException {
+        try(var s=c.prepareStatement("SELECT schema_version,rules_version,threshold FROM pudding_config WHERE singleton")){
+            try(var r=s.executeQuery()){
+                if(!r.next()||r.getInt(1)!=1||!RULES.equals(r.getString(2)))throw new SQLException("unsupported pudding schema/rules");
+                int threshold=r.getInt(3);if(threshold<1||threshold>100)throw new SQLException("invalid policy");return threshold;
+            }
+        }
+    }
+    private static void limits(Connection c)throws SQLException {try(var s=c.createStatement()){s.execute("SET LOCAL lock_timeout='5s'");s.execute("SET LOCAL statement_timeout='10s'");}}
+    private Policy lockActor(Connection c)throws SQLException {
+        int threshold=config(c);
+        try(var s=c.prepareStatement("INSERT INTO pudding_agents(id,policy) VALUES(?,?) ON CONFLICT DO NOTHING")){
+            s.setString(1,actor);s.setBytes(2,Codec.policy(new Policy(threshold,Set.of())));s.executeUpdate();
+        }
+        try(var s=c.prepareStatement("SELECT policy FROM pudding_agents WHERE id=? FOR UPDATE")){
+            s.setString(1,actor);try(var r=s.executeQuery()){
+                if(!r.next())throw new SQLException("missing principal");var p=Codec.policy(r.getBytes(1));
+                if(p.threshold()!=threshold)throw new SQLException("policy mismatch");return p;
+            }
+        }
+    }
+    private State load(Connection c,UUID id,boolean unresolved)throws SQLException {
+        String sql=unresolved?"SELECT state FROM pudding_sessions WHERE agent_id=? AND NOT closed":"SELECT state FROM pudding_sessions WHERE agent_id=? AND id=?";
+        try(var s=c.prepareStatement(sql)){s.setString(1,actor);if(!unresolved)s.setObject(2,id);try(var r=s.executeQuery()){return r.next()?Codec.state(r.getBytes(1)):null;}}
+    }
+    public Response execute(Command command)throws SQLException {
+        Objects.requireNonNull(command);byte[] payload=Codec.command(command);
+        try(var c=connections.open()){
+            c.setAutoCommit(false);c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
+            try {
+                limits(c);Policy policy=lockActor(c);
+                try(var s=c.prepareStatement("SELECT command,response FROM pudding_requests WHERE agent_id=? AND request_id=?")){
+                    s.setString(1,actor);s.setObject(2,command.request());try(var r=s.executeQuery()){
+                        if(r.next()){
+                            var response=Arrays.equals(payload,r.getBytes(1))?Codec.response(r.getBytes(2)):new Response(false,"REQUEST_ID_REUSED",null,policy,false);
+                            c.commit();return response;
+                        }
+                    }
+                }
+                Instant now=clock.instant();State old=load(c,command.session(),command.op()==Op.CREATE);
+                var transition=Core.apply(old,policy,command,now,fixture);
+                if(transition.response().ok())save(c,transition.state());
+                if(!transition.policy().equals(policy)) {
+                    try(var s=c.prepareStatement("UPDATE pudding_agents SET policy=? WHERE id=?")){
+                        s.setBytes(1,Codec.policy(transition.policy()));s.setString(2,actor);s.executeUpdate();
+                    }
+                }
+                byte[] response=Codec.response(transition.response());
+                try(var s=c.prepareStatement("INSERT INTO pudding_requests VALUES(?,?,?,?)")){
+                    s.setString(1,actor);s.setObject(2,command.request());s.setBytes(3,payload);s.setBytes(4,response);s.executeUpdate();
+                }
+                event(c,command.request().toString(),now,response);c.commit();return transition.response();
+            }catch(SQLException|RuntimeException e){c.rollback();throw e;}
+        }
+    }
+    private void save(Connection c,State state)throws SQLException {
+        try(var s=c.prepareStatement("INSERT INTO pudding_sessions VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET revision=EXCLUDED.revision,closed=EXCLUDED.closed,state=EXCLUDED.state WHERE pudding_sessions.agent_id=EXCLUDED.agent_id")){
+            s.setObject(1,state.id());s.setString(2,actor);s.setInt(3,state.revision());s.setBoolean(4,state.serving()==Serving.CLOSED);s.setBytes(5,Codec.state(state));
+            if(s.executeUpdate()!=1)throw new SQLException("session ownership conflict");
+        }
+    }
+    private void event(Connection c,String key,Instant now,byte[] response)throws SQLException {
+        try(var s=c.prepareStatement("INSERT INTO pudding_events(agent_id,event_key,occurred_at,response) VALUES(?,?,?,?)")){
+            s.setString(1,actor);s.setString(2,key);s.setObject(3,now.atOffset(ZoneOffset.UTC));s.setBytes(4,response);s.executeUpdate();
+        }
+    }
+    public record View(State state,Policy policy,Lifecycle.Age aging){}
+    public View read(UUID id)throws SQLException {
+        try(var c=connections.open()){
+            c.setAutoCommit(false);c.setReadOnly(true);
+            try {
+                limits(c);config(c);
+                try(var s=c.prepareStatement("SELECT s.state,a.policy FROM pudding_sessions s JOIN pudding_agents a ON a.id=s.agent_id WHERE s.id=? AND s.agent_id=?")){
+                    s.setObject(1,id);s.setString(2,actor);try(var r=s.executeQuery()){
+                        View view=null;if(r.next()){var state=Codec.state(r.getBytes(1));view=new View(state,Codec.policy(r.getBytes(2)),state.deadlines()==null?null:Lifecycle.age(state.deadlines(),clock.instant()));}
+                        c.commit();return view;
+                    }
+                }
+            }catch(SQLException|RuntimeException e){c.rollback();throw e;}
+        }
+    }
+    /** Operator-invoked fixture disposal, owner-scoped; no scheduler or financial event. */
+    public State expire(UUID id)throws SQLException {
+        try(var c=connections.open()){
+            c.setAutoCommit(false);
+            try {
+                limits(c);var policy=lockActor(c);var old=load(c,id,false);Instant now=clock.instant();var next=Core.expire(old,now);
+                if(next!=null&&!next.equals(old)){save(c,next);event(c,"expiry:"+id,now,Codec.response(new Response(true,null,next,policy,false)));}
+                c.commit();return next;
+            }catch(SQLException|RuntimeException e){c.rollback();throw e;}
+        }
+    }
+}
