@@ -6,6 +6,7 @@ from pathlib import Path
 import tempfile
 import tarfile
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -59,6 +60,18 @@ class ReleaseTests(unittest.TestCase):
         self.assertTrue(next(s for s in recipe['settings'] if s['key'] == 'AGENT_TOKEN')['generate'])
         self.assertTrue(all(not s['default'] for s in recipe['settings'] if s['secret']))
         self.assertEqual(next(iter(recipe['downloads'].values()))['digest'], 'sha256:' + hashlib.sha256(self.archive.read_bytes()).hexdigest())
+        output = self.root / 'candidate'
+        with patch('sys.argv', ['build_pudding_release.py', '--image-tar', str(self.archive),
+                               '--release', '0.3.0', '--revision', self.revision,
+                               '--platform', 'linux/amd64', '--base-url',
+                               'https://github.com/flamoris-jp/flamoris-pudding/releases/download/v0.3.0',
+                               '--output', str(output)]), patch('sys.stdout', new_callable=io.StringIO):
+            release.main()
+        candidate = json.loads((output / 'candidate.json').read_text())
+        self.assertEqual(candidate['image_id'], image)
+        self.assertEqual(json.loads((output / 'catalog.json').read_text())['recipes'][0]['application']['image_id'], image)
+        self.assertEqual((output / 'linux-amd64--image.tar').read_bytes(), self.archive.read_bytes())
+        self.assertFalse(candidate['published'])
 
     def test_runtime_and_archive_identity_rejections(self):
         for values in ({'user': '0'}, {'architecture': 'arm64'}, {'release_value': '0.3.1'}, {'duplicate': True}):

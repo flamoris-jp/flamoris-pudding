@@ -88,7 +88,7 @@ Updaterでは導入→awaiting_setup→起動→DB/初期設定の確認→導�
 
 ## 検証範囲
 
-ローカルではJavaコア16、HTTP/MCP10、設定3シナリオ、Python60テスト、既存の数値・状態照合を実行する。初回チェックポイントの隔離CIで実Docker/Updater/TLSの4シナリオが成功。最終受入れでもJDK25/PostgreSQL18（runtime権限を含む11シナリオ）と、実Dockerイメージ・実Updaterの導入/更新・合成TLS入口・MCP操作・再起動再送・DB/設定保持を検証する設定。最新結果はPRのChecksを参照する。CIのダウンロードはローカル候補へ置換し、公開URLからのダウンロードや実環境の導入成功とは区別する。
+ローカルではJavaコア16、HTTP/MCP10、設定3シナリオ、Python60テスト、既存の数値・状態照合が成功。コミット `6548169` の隔離CIで、JDK25/PostgreSQL18（runtime権限を含む11シナリオ）と実Docker/Updater/TLSの4シナリオも成功した。実Updaterの導入/更新・合成TLS入口・MCP操作・再起動再送・DB/設定保持を確認している。最終コミットの結果は[PR #8のChecks](https://github.com/flamoris-jp/flamoris-pudding/pull/8/checks)を参照する。CIのダウンロードはローカル候補へ置換し、公開URLからのダウンロードや実環境の導入成功とは区別する。
 
 Updaterの照合対象は公開ソースのcommit `d3390f5dfbd1b1fe453df714d8219a12cec2706e`。実ホストの導入済み版を確認したことは意味しない。配備時はServer Managerで状態を確認し、Updaterの利用可能な版とカタログの契約を照合する。
 

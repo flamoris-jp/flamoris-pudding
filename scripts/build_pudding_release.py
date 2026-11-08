@@ -48,7 +48,7 @@ def image_config(archive: Path, image_id: str | None):
     return config, actual
 
 
-def make_catalog(archive: Path, image_id: str, release: str, revision: str,
+def make_catalog(archive: Path, image_id: str | None, release: str, revision: str,
                  platform: str, base_url: str, compatible_from=()):
     if not VERSION.fullmatch(release) or not re.fullmatch(r'[0-9a-f]{40}', revision):
         raise ValueError('invalid release/revision')
@@ -137,7 +137,7 @@ def main():
     (a.output / 'catalog.json').write_text(json.dumps(catalog, ensure_ascii=False, indent=2) + '\n')
     (a.output / 'candidate.json').write_text(json.dumps({
         'application_id': APP, 'release': a.release, 'source_revision': a.revision,
-        'platform': a.platform, 'image_id': a.image_id, 'published': False,
+        'platform': a.platform, 'image_id': catalog['recipes'][0]['application']['image_id'], 'published': False,
         'artifacts': catalog['recipes'][0]['downloads'],
     }, indent=2) + '\n')
     print('Built candidate catalog and verified image archive; no release published.')
