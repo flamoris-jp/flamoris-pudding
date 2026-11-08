@@ -6,6 +6,7 @@ import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.util.*;
+import java.util.concurrent.*;
 import net.flamoris.pudding.*;
 
 /** Loopback protocol/adversarial tests using synthetic fixtures, never real Agents. */
@@ -102,6 +103,77 @@ public final class HttpTest {
                 var input=new HashMap<String,Object>(common);input.putAll(extra);var r=e.handle(request(rpc(id++,"tools/call",Map.of("name","pudding.spoon.taste","arguments",input)),TOKEN_A,sid,McpEndpoint.VERSION));check(object(r.body()).containsKey("error"));
             }equal(b.calls,0);
         });
+        scenario("short-lived clients reconnect without DELETE and preserve food replay",()->{
+            var b=new TestBackend();var e=endpoint(b,new TestClock());
+            for(int i=0;i<40;i++){
+                String sid=initialize(e,TOKEN_A);
+                equal(e.handle(request(rpc(2,"tools/list",Map.of()),TOKEN_A,sid,McpEndpoint.VERSION)).status(),200);
+            }
+            String requestId=UUID.randomUUID().toString();
+            var first=call(e,TOKEN_A,initialize(e,TOKEN_A),2,"pudding.sessions.create",Map.of("request_id",requestId));
+            var state=(Map<?,?>)first.get("session");String id=(String)state.get("id");int revision=0;
+            for(String op:List.of("pudding.lid.peel","pudding.lid.dispose","pudding.spoon.scoop","pudding.spoon.taste","pudding.sessions.finish","pudding.sessions.cleanup")){
+                var input=new HashMap<String,Object>();input.put("request_id",UUID.randomUUID().toString());input.put("session_id",id);input.put("expected_revision",revision++);
+                if(op.endsWith("peel"))input.put("amount_q",1000);if(op.endsWith("scoop")){input.put("body_mg",10000);input.put("sauce_mg",1000);}
+                String sid=initialize(e,TOKEN_A);var result=call(e,TOKEN_A,sid,2,op,input);equal(result.get("ok"),true);
+                state=(Map<?,?>)result.get("session");
+                if(op.endsWith("taste"))equal(call(e,TOKEN_A,initialize(e,TOKEN_A),2,op,input),result);
+            }
+            equal(state.get("session_stage"),"closed");equal(((Number)state.get("bites")).intValue(),1);
+            equal(call(e,TOKEN_A,initialize(e,TOKEN_A),2,"pudding.sessions.create",Map.of("request_id",requestId)),first);
+            equal(call(e,TOKEN_B,initialize(e,TOKEN_B),2,"pudding.sessions.get",Map.of("session_id",id)).get("error"),"NOT_FOUND");
+        });
+        scenario("idle recycling uses recency and never evicts another Agent",()->{
+            var e=endpoint(new TestBackend(),new TestClock());String other=initialize(e,TOKEN_B);
+            var ids=new ArrayList<String>();for(int i=0;i<8;i++)ids.add(initialize(e,TOKEN_A));
+            equal(e.handle(request(rpc(2,"tools/list",Map.of()),TOKEN_A,ids.getFirst(),McpEndpoint.VERSION)).status(),200);
+            initialize(e,TOKEN_A);
+            equal(e.handle(request(rpc(2,"tools/list",Map.of()),TOKEN_A,ids.get(1),McpEndpoint.VERSION)).status(),404);
+            equal(e.handle(request(rpc(3,"tools/list",Map.of()),TOKEN_A,ids.getFirst(),McpEndpoint.VERSION)).status(),200);
+            equal(e.handle(request(rpc(2,"tools/list",Map.of()),TOKEN_B,other,McpEndpoint.VERSION)).status(),200);
+            equal(e.handle(request(rpc(4,"tools/list",Map.of()),TOKEN_B,ids.getFirst(),McpEndpoint.VERSION)).status(),404);
+        });
+        scenario("eight active requests stay protected and failed requests release leases",()->{
+            var entered=new CountDownLatch(8);var release=new CountDownLatch(1);
+            Backend backend=new Backend(){
+                @Override public Core.Response execute(String agent,Core.Command command){
+                    entered.countDown();try{if(!release.await(5,TimeUnit.SECONDS))throw new AssertionError("release timeout");}
+                    catch(InterruptedException ex){Thread.currentThread().interrupt();throw new AssertionError(ex);}
+                    throw new IllegalStateException("synthetic backend failure");
+                }
+                @Override public View read(String agent,UUID id){return null;}
+                @Override public boolean ready(){return true;}
+                @Override public Instant now(){return Instant.parse("2026-11-08T01:00:00Z");}
+            };
+            var e=new McpEndpoint(credentials(),backend,Set.of("localhost"),Set.of(),new TestClock(),Duration.ofMinutes(30));
+            try(var workers=Executors.newVirtualThreadPerTaskExecutor()){
+                var futures=new ArrayList<Future<Reply>>();
+                try {
+                    for(int i=0;i<8;i++){
+                        String sid=initialize(e,TOKEN_A);String rid=UUID.randomUUID().toString();
+                        futures.add(workers.submit(()->e.handle(request(rpc(2,"tools/call",Map.of("name","pudding.sessions.create","arguments",Map.of("request_id",rid))),TOKEN_A,sid,McpEndpoint.VERSION))));
+                    }
+                    check(entered.await(3,TimeUnit.SECONDS));equal(e.handle(request(init(),TOKEN_A,null,null)).status(),429);
+                    // Another Agent can initialize even while this Agent's eight slots are busy.
+                    initialize(e,TOKEN_B);
+                }finally{release.countDown();}
+                for(var future:futures)check(object(future.get(3,TimeUnit.SECONDS).body()).containsKey("error"));
+                initialize(e,TOKEN_A);
+            }
+        });
+        scenario("global session bound cannot evict a different Agent",()->{
+            var configured=new ArrayList<Map<String,String>>();var tokens=new ArrayList<String>();
+            for(int i=0;i<33;i++){String token="T".repeat(43)+i;tokens.add(token);configured.add(Map.of("agent_id","fixture-"+i,"token",token));}
+            var e=new McpEndpoint(new AgentCredentials(Json.write(configured).getBytes(StandardCharsets.UTF_8)),new TestBackend(),Set.of("localhost"),Set.of(),new TestClock(),Duration.ofMinutes(30));
+            String first=null;
+            for(int agent=0;agent<32;agent++)for(int slot=0;slot<8;slot++){
+                String sid=initialize(e,tokens.get(agent));if(first==null)first=sid;
+            }
+            equal(e.handle(request(init(),tokens.get(32),null,null)).status(),429);
+            initialize(e,tokens.getFirst());
+            equal(e.handle(request(rpc(2,"tools/list",Map.of()),tokens.getFirst(),first,McpEndpoint.VERSION)).status(),404);
+            equal(e.handle(request(init(),tokens.get(32),null,null)).status(),429);
+        });
         scenario("expiry deletion quotas and health",()->{
             var b=new TestBackend();var clock=new TestClock();var e=endpoint(b,clock);String sid=initialize(e,TOKEN_A);
             var delete=new HttpRequest(HttpMethod.DELETE,"/mcp","HTTP/1.1",request(Map.of(),TOKEN_A,sid,McpEndpoint.VERSION).headers(),new byte[0]);equal(e.handle(delete).status(),204);
@@ -130,3 +202,4 @@ public final class HttpTest {
         try(var socket=new Socket(InetAddress.getLoopbackAddress(),port)){socket.setSoTimeout(2000);socket.getOutputStream().write(raw.getBytes(StandardCharsets.US_ASCII));return socket.getInputStream().readAllBytes();}
     }
 }
+

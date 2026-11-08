@@ -207,6 +207,13 @@ http {{ server {{ listen {tls_port} ssl; ssl_certificate /tls/cert.pem; ssl_cert
             assert client.request('tools/list')[1]['result']['tools']
             assert client.request('ping', token='invalid')[0] == 401
             assert client.request('ping', extra={'Origin': 'https://untrusted.example'})[0] == 403
+            # Reproduce clients that initialize per operation and omit DELETE.
+            # No sleeps/restart: this exceeded the old per-Agent cap of eight.
+            for _ in range(40):
+                client.session = None
+                client.initialize('0.3.0')
+                assert len(client.request('tools/list')[1]['result']['tools']) == 9
+            service_version = '0.3.0'
             import uuid
             request_id = str(uuid.uuid4())
             first = client.tool('pudding.sessions.create', {'request_id': request_id})
@@ -215,6 +222,8 @@ http {{ server {{ listen {tls_port} ssl; ssl_certificate /tls/cert.pem; ssl_cert
             session = first['session']
             def action(op, **extra):
                 nonlocal session
+                client.session = None
+                client.initialize(service_version)
                 params = {'session_id': session['id'], 'expected_revision': session['revision'], 'request_id': str(uuid.uuid4()), **extra}
                 result = client.tool(op, params)
                 assert result['ok'], result.get('error')
@@ -234,6 +243,7 @@ http {{ server {{ listen {tls_port} ssl; ssl_certificate /tls/cert.pem; ssl_cert
             manager.run_job(update['job_id']); job_done(update, 'succeeded')
             assert env_path.read_bytes() == original_env
             client = Client(f'https://127.0.0.1:{tls_port}/mcp', token, context)
+            service_version = '0.3.1'
             client.initialize('0.3.1')
             assert client.tool('pudding.sessions.create', {'request_id': request_id}) == first
             assert client.last_tool_content == first_text
@@ -269,3 +279,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+

@@ -1,4 +1,4 @@
-# 単独HTTP/MCP・Docker・Updater（0.3.0候補）
+# 単独HTTP/MCP・Docker・Updater（0.3.1候補）
 
 2026-11-08。Javaコアへ直接接続するHTTP/MCPサービスを実装した。Hubへの登録や経由は不要。HTTPの値型を許諾済みの既存基盤から最小限再利用し、HTTP入力制約、Agent資格情報、セッション、MCP実行、配布処理はPudding側で実装する。既存基盤の認証・認可・Kernel・機密設定は含めない。
 
@@ -34,7 +34,11 @@ MCP revision `2025-11-25` のStreamable HTTP・JSON応答を扱う。独立HTTP/
 
 初期9ツールと入力スキーマはPython研究版と同じ名前で、[tools.json](../java/src/main/resources/mcp/tools.json)に定義する。未知の引数、boolの整数代用、時計・Agent ID等の追加引数は実行前に拒否する。MCPにDB移行・税率管理・人間の承認操作は公開しない。
 
-通信セッションは30分、全体256・一Agent8まで。セッションあたり要求IDは1000個まで、IDは64bit整数または256文字までの文字列。IDのハッシュだけを重複検査に保持する。上限・期限後は新規initializeを行い、食事の続きはDBから読む。変更操作のrequest_idはMCPの要求IDと別のUUID。同じ業務request_idを再送すると保存済みの結果を返す。更新応答は過去のスナップショットを返し、現在のeffective_ageはgetで読む。
+通信セッションは最大30分、全体256・一Agent8まで。0.3.1では、一Agentの上限で同じAgentの初期化済み・処理中でないセッションのうち、最後の利用が最も古いものを終了して新規initializeを受け入れる。DELETEを送らず操作ごとに再接続するクライアントでも、古い通信だけで上限を使い切らない。実行中の要求、初期化途中のセッション、別Agentのセッションはこの入替えで終了しない。全枠が実行中/初期化途中の場合や全体上限では引き続き429を返す。
+
+終了した通信セッションへの要求は404。クライアントは新しくinitializeし、変更操作は同じ業務request_idで照合する（[MCP session management](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports#session-management)）。セッションあたり要求IDは1000個まで、IDは64bit整数または256文字までの文字列。IDのハッシュだけを重複検査に保持する。上限・期限後は新規initializeを行い、食事の続きはDBから読む。変更操作のrequest_idはMCPの要求IDと別のUUID。同じ業務request_idを再送すると保存済みの結果を返す。更新応答は過去のスナップショットを返し、現在のeffective_ageはgetで読む。
+
+0.3.0は公開済みのdevelopment prereleaseで、実クライアントでの試食・片付けまで受け入れた。ただし繰り返し接続で429が再発し、通信状態をリセットする再起動が必要だった。0.3.1の修正はDB schema・資格情報・9ツールの入力を変更せず、0.3.0からの互換更新候補として検証する。ソースの修正、公開配布、導入先の更新、実トンネルでの連続受入れは別の到達点である。
 
 入力は本文64KiB、メタデータ16KiB、ヘッダー64個、JSON深さ32・ノード10000まで。重複キー・ヘッダー、不正UTF-8/サロゲート、曖昧なHTTPフレーミングを拒否する。接続は最大16、通信寿命15秒。DBはlock/statement/transactionにも時間制限を持ち、通信切断後の結果は同じrequest_idで照合する。別IDで食べ直さない。
 
@@ -93,3 +97,4 @@ Updaterでは導入→awaiting_setup→起動→DB/初期設定の確認→導�
 Updaterの照合対象は公開ソースのcommit `d3390f5dfbd1b1fe453df714d8219a12cec2706e`。実ホストの導入済み版を確認したことは意味しない。配備時はServer Managerで状態を確認し、Updaterの利用可能な版とカタログの契約を照合する。
 
 参照：[MCP transport](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)、[lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle)、[tools](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)、[JSON RFC](https://www.rfc-editor.org/rfc/rfc8259)、[Updaterの契約](https://github.com/flamoris-jp/flamoris-updater/blob/main/docs/INSTALL.md)。
+

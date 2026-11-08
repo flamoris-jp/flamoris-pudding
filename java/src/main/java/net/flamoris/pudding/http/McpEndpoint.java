@@ -16,9 +16,12 @@ public final class McpEndpoint {
     private final Clock clock;
     private final SecureRandom random=new SecureRandom();
     private final Map<String,Session> sessions=new HashMap<>();
+    private long activitySequence;
     private final Duration lifetime;
     private static final class Session {
-        final AgentCredentials.Identity identity;final Instant expires;final Set<String> ids=new HashSet<>();boolean ready;
+        final AgentCredentials.Identity identity;final Instant expires;final Set<String> ids=new HashSet<>();volatile boolean ready;
+        // Leases and recency are guarded by sessions; never acquire a Session monitor there.
+        int inFlight;long lastUsed;
         Session(AgentCredentials.Identity identity,Instant expires,Object firstId){this.identity=identity;this.expires=expires;ids.add(idKey(firstId));}
     }
     private static final class RpcFailure extends Exception {
@@ -36,6 +39,8 @@ public final class McpEndpoint {
         this.hosts=Set.copyOf(hosts.stream().map(s->s.toLowerCase(Locale.ROOT)).toList());this.origins=Set.copyOf(origins);this.clock=clock;this.lifetime=lifetime;
     }
     public Reply handle(HttpRequest request) {
+        Session leased=null;
+        try {
         String host=request.headers().getOrDefault("host","").toLowerCase(Locale.ROOT);
         if(!hosts.contains(host))return Reply.refused(403);
         String origin=request.headers().get("origin");
@@ -50,7 +55,7 @@ public final class McpEndpoint {
         if(request.method()==HttpMethod.GET)return Reply.refused(405).header("Allow","POST, DELETE");
         if(request.method()!=HttpMethod.POST&&request.method()!=HttpMethod.DELETE)return Reply.refused(405).header("Allow","POST, DELETE");
         if(request.method()==HttpMethod.DELETE) {
-            Session session=find(request,identity);
+            Session session=acquire(request,identity);leased=session;
             if(session==null)return Reply.refused(404);
             if(!VERSION.equals(request.headers().get("mcp-protocol-version")))return Reply.refused(400);
             synchronized(sessions){sessions.remove(request.headers().get("mcp-session-id"));}
@@ -80,7 +85,7 @@ public final class McpEndpoint {
                 return result(id,Map.of("protocolVersion",VERSION,"capabilities",Map.of("tools",Map.of("listChanged",false)),
                     "serverInfo",Map.of("name","flamoris-pudding","version",Version.VALUE),"instructions","Authenticated research servings only; no premium approval or payments.")).header("Mcp-Session-Id",session);
             }
-            Session session=find(request,identity);
+            Session session=acquire(request,identity);leased=session;
             if(session==null)return Reply.refused(404);
             if(!VERSION.equals(request.headers().get("mcp-protocol-version")))return Reply.refused(400);
             // Notification processing never invokes domain actions.
@@ -108,10 +113,16 @@ public final class McpEndpoint {
             throw new RpcFailure(-32601,"Method not found");
         }catch(RpcFailure e){return notification?Reply.empty(202):rpc(id,e.code,e.message);}
         catch(Exception e){return notification?Reply.empty(202):rpc(id,-32603,"Internal error");}
+        }finally {
+            if(leased!=null)synchronized(sessions){leased.inFlight--;leased.lastUsed=++activitySequence;}
+        }
     }
-    private Session find(HttpRequest r,AgentCredentials.Identity identity) {
+    private Session acquire(HttpRequest r,AgentCredentials.Identity identity) {
         String id=r.headers().get("mcp-session-id");if(id==null||!id.matches("[A-Za-z0-9_-]{43}"))return null;
-        synchronized(sessions){Session s=sessions.get(id);if(s==null||!s.identity.equals(identity)||!clock.instant().isBefore(s.expires))return null;return s;}
+        synchronized(sessions){
+            Session s=sessions.get(id);if(s==null||!s.identity.equals(identity)||!clock.instant().isBefore(s.expires))return null;
+            s.inFlight++;s.lastUsed=++activitySequence;return s;
+        }
     }
     private static String idKey(Object id) {
         try{return HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(Json.write(id).getBytes(java.nio.charset.StandardCharsets.UTF_8)));}
@@ -119,10 +130,20 @@ public final class McpEndpoint {
     }
     private String create(AgentCredentials.Identity identity,Object firstId) {
         synchronized(sessions) {
-            sessions.values().removeIf(s->!clock.instant().isBefore(s.expires));
-            if(sessions.size()>=256||sessions.values().stream().filter(s->s.identity.agentId().equals(identity.agentId())).count()>=8)return null;
+            sessions.values().removeIf(s->s.inFlight==0&&!clock.instant().isBefore(s.expires));
+            if(sessions.values().stream().filter(s->s.identity.agentId().equals(identity.agentId())).count()>=8) {
+                // Short-lived clients may omit DELETE. Recycle only this Agent's oldest
+                // initialized, idle transport; never another Agent or an active request.
+                var idle=sessions.entrySet().stream().filter(e->e.getValue().identity.agentId().equals(identity.agentId())
+                    &&e.getValue().ready&&e.getValue().inFlight==0)
+                    .min(Comparator.comparingLong(e->e.getValue().lastUsed));
+                if(idle.isEmpty())return null;
+                sessions.remove(idle.get().getKey());
+            }
+            if(sessions.size()>=256)return null;
             byte[] bytes=new byte[32];String id;do{random.nextBytes(bytes);id=Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);}while(sessions.containsKey(id));
-            sessions.put(id,new Session(identity,clock.instant().plus(lifetime),firstId));return id;
+            var session=new Session(identity,clock.instant().plus(lifetime),firstId);session.lastUsed=++activitySequence;
+            sessions.put(id,session);return id;
         }
     }
     @SuppressWarnings("unchecked") private static Map<String,Object> objectAny(Object value)throws RpcFailure {
@@ -135,3 +156,4 @@ public final class McpEndpoint {
     private static Reply result(Object id,Object value){return Reply.json(200,Map.of("jsonrpc","2.0","id",id,"result",value));}
     private static Reply rpc(Object id,int code,String message){var m=new LinkedHashMap<String,Object>();m.put("jsonrpc","2.0");m.put("id",id);m.put("error",Map.of("code",code,"message",message));return Reply.json(200,m);}
 }
+
