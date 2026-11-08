@@ -1,20 +1,22 @@
 # Python研究版：ローカル研究コア 0.1.0
 
-Javaの独立HTTP/MCP・Docker・Updater候補は[単独サービス手順](STANDALONE_SERVICE.md)を参照。以下はPythonの照合用経路であり、Javaサービスの認証・配布状態とは区別する。
+Java 0.3.1の独立HTTP/MCP・Docker・Updater配布は[単独サービス手順](STANDALONE_SERVICE.md)を参照。以下はPythonの照合用経路であり、Javaサービスの認証・配布状態とは区別する。
 
 Javaへの移植とPostgreSQL保存は[JAVA_MIGRATION](JAVA_MIGRATION.md)を参照。このページは照合用に維持するPython/SQLite/stdioの経路を説明する。Javaコアとの二重書込みは行わない。
 
 2026-11-08。実装範囲は合成Agentの研究用プリン、決定的な味の表現、SQLite保存、狭いstdio MCP。設計書の全機能を提供したものではない。
 
-## 次のサービス構成（未実装）
+## Javaサービスとの使い分け
 
-開発ステータスはdevelopment。現在のPython研究版の実行手順は以下のとおり。次のHTTP/MCP基盤取り込みと同時にDocker化し、MCPはHubを経由しない独立エンドポイントへ直接接続する。研究用stdioは維持する。コアはJavaへ移植する方針に固定した。独自の認証・認可、DB移行・復旧を整え、残量・購入権・違反を管理する正本を一つにする。詳細は[ロードマップ](ROADMAP.md)を参照。
+開発ステータスはdevelopment。常駐サービスはJava/PostgreSQLで、DockerとUpdaterで配布し、Hubを経由せず独立MCPへ接続する。0.3.1では公開・互換更新・専用常駐トンネルでの限定受入れまで確認した。Agent別Bearer認証、所有範囲、通信セッションの入替えはJavaサービス側の機能である。
+
+このページのPython/SQLite/stdioは数値・状態照合用に維持する。PythonへHTTPサーバーや本番用認証を追加したものではない。PythonとJavaはDBを共有せず、購入権の正本を二重に作らない。復旧・商用の未完了項目は[ロードマップ](ROADMAP.md)を参照。
 
 ## 実行環境と選定理由
 
 Python 3.11以上、SQLiteのJSON関数、OSのIANAタイムゾーンデータがあるLinuxを対象にする。実行時のPython外部依存はない。今回のローカル検証はPython 3.12。CIは3.11/3.12/3.13で確認する設定であり、実際の結果はPRのChecksを参照する。
 
-整数mg・有理数・トランザクションを小さく検証できるため、この研究コアをPythonで独立実装した。MCPアダプターは同じコアを呼ぶ。HTTPサーバーはまだない。非公開の第三者フレームワークやそのセキュリティ実装をコピーしていない。今後のHTTP基盤導入は依存方向とライセンスを別途確認する。
+整数mg・有理数・トランザクションを小さく検証できるため、この研究コアをPythonで独立実装した。MCPアダプターは同じコアを呼ぶ。Python研究版にはHTTPサーバーを持たせない。非公開の第三者フレームワークやそのセキュリティ実装をコピーしていない。JavaサービスのHTTP値型は許諾された最小範囲を再利用し、認証・認可はPudding側で実装している。
 
 リポジトリのルートで実行する。APIキー、モデル、GPU、決済資格情報は不要。
 
@@ -70,7 +72,7 @@ stdioのMCP revision `2025-11-25`。initialize→notifications/initialized→too
 }
 ```
 
-実際のFLAMORIS HubやChatGPTへの登録・配備・実機受入れはまだ行っていない。参考：[公式stdio仕様](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)、[接続ライフサイクル](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle)、[ツール仕様](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)。
+このPython stdio経路は実際のHubやChatGPTへ配備・受入れを行っていない。実際のChatGPT試食は、別のJava単独サービスと専用トンネルで受け入れた。参考：[公式stdio仕様](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)、[接続ライフサイクル](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle)、[ツール仕様](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)。
 
 ## 期限・会計の試験境界
 

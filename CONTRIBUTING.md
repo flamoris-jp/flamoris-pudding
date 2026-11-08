@@ -4,7 +4,7 @@ Javaコアの変更は `python3 scripts/verify_java.py` によるPython照合と
 
 ## はじめに
 
-[README](README.md)、[AGENTS.md](AGENTS.md)、[研究方針](docs/RESEARCH.md)、[進捗](PROGRESS.md)、[実装手順](docs/IMPLEMENTATION.md)を読み、現在の状態を確認してください。Pythonの照合用研究版に加え、JavaコアとPostgreSQL保存アダプターを開発しています。商用の認証・決済・公開サービスはまだありません。
+[README](README.md)、[AGENTS.md](AGENTS.md)、[研究方針](docs/RESEARCH.md)、[進捗](PROGRESS.md)、[実装手順](docs/IMPLEMENTATION.md)を読み、現在の状態を確認してください。Pythonの照合用研究版に加え、Java/PostgreSQLの単独HTTP/MCP 0.3.1を公開し、Updater導入・互換更新と専用トンネルでの限定受入れを確認しています。人間の有料承認・決済・商用サービスはまだありません。
 
 ## リポジトリの取得
 
