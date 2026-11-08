@@ -25,7 +25,15 @@ gh auth status
 gh workflow run release.yml --repo flamoris-jp/flamoris-pudding --ref main
 ```
 
-この手動実行は検証済みartifactを作るだけで、Releaseやタグを作成しない。PRでもmain側の実際の候補を取得して同じ読み取り検証を行う。書込み権限を使うpublish jobはタグpushだけで動く。
+既定の手動実行は検証済みartifactを作るだけで、Releaseやタグを作成しない。PRでもmain側の実際の候補を取得して同じ読み取り検証を行う。書込み権限を使うpublish jobはタグpush、またはmainの手動実行で明示的に `publish=true` を選んだ場合だけ動く。
+
+mainの検証済み候補からタグも作成して公開する場合：
+
+```bash
+gh workflow run release.yml --repo flamoris-jp/flamoris-pudding --ref main -F publish=true
+```
+
+この場合も3本のmain CI成功と実物照合を先に行い、そのコミットへ新規タグを作る。既存タグを移動・上書きしない。
 
 ## development prereleaseを公開する
 
