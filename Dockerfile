@@ -6,7 +6,7 @@ RUN mvn --batch-mode package dependency:copy-dependencies -DincludeScope=runtime
 
 FROM eclipse-temurin:25-jre
 ARG SOURCE_REVISION=unknown
-ARG APP_VERSION=0.3.0
+ARG APP_VERSION=0.3.1
 LABEL org.opencontainers.image.title="flamoris-pudding" \
       org.opencontainers.image.version=$APP_VERSION \
       org.opencontainers.image.revision=$SOURCE_REVISION \
@@ -22,3 +22,4 @@ EXPOSE 8080
 HEALTHCHECK --interval=15s --timeout=5s --start-period=10s --retries=3 \
   CMD ["java", "-cp", "/app/classes:/app/lib/*", "net.flamoris.pudding.ServiceMain", "healthcheck"]
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=70", "-XX:+ExitOnOutOfMemoryError", "-cp", "/app/classes:/app/lib/*", "net.flamoris.pudding.ServiceMain"]
+
