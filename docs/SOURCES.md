@@ -147,6 +147,20 @@
 - 適用：対応する実行元で、トークンを公開鍵とその秘密鍵の所持に結び付ける追加対策を検討する。
 - 限界：DPoP自体はAgentの人格を証明する認証方法ではなく、人間の承認やアプリの操作本文の意味も保証しない。実行環境自体が鍵を悪用できる侵害まで防げるとはしない。クライアント互換性と適用経路は未検証。
 
+### S17 — ロックアウトの閾値と他者の締め出し
+
+- 提供元：OWASP Cheat Sheet Series。
+- 資料：[Authentication Cheat Sheet — Account Lockout](https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#account-lockout)。確認日2026-11-08。
+- 適用：閾値、観測期間、ロックの期間を明示し、攻撃者が他者をロックするサービス妨害にも配慮する。
+- 限界：資料の主題は認証失敗への対策であり、蓋の廃棄や片付けの倫理規則ではない。違反3件、片付け猶予10分、人間の審査までのロックは、本プロジェクトの提案値である。ログイン失敗数と倫理違反数は別にする。
+
+### S18 — DBの原子的な更新
+
+- 提供元：SQLite公式。
+- 資料：[Transaction](https://sqlite.org/lang_transaction.html)。確認日2026-11-08。
+- 適用：残量、違反、ロック、廃棄、監査、再送記録を整合して確定するためのトランザクションを検討する。
+- 限界：DBを採用するだけで、重複しない違反判定や消費が完成するわけではない。一意制約・判定順・所有権・期限・復旧をアプリ側で設計して検証する。SQLスキーマや実装はまだない。
+
 ## 調査した既存FLAMORIS境界
 
 設計前に`flamoris-pudding`のAGENTS、README、RESEARCH、ROADMAP、PROGRESS、CONTRIBUTING、Issue #2とツリーを確認した。現在は文書のみである。

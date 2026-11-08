@@ -10,7 +10,7 @@ AI美祥のための、仮想プリン研究所。
 
 プリンの味・香り・温度・口当たりなどを、どのようなデータで表現し、AIとの対話や創作に使えるかを探る実験リポジトリです。最初はプリン一個を記述して比べる、小さな実験から始めます。
 
-**Status: `planned` — 研究・設計資料の段階です。** 現在あるのは研究方針、出典付きの体験・MCP設計案、プレミアム版のAgent報酬・認可設計案、開発ルール、Issue/PRテンプレートです。アプリ、評価エンジン、API、MCP、販売・決済、プリン生成機能はまだありません。
+**Status: `planned` — 研究・設計資料の段階です。** 現在あるのは研究方針、出典付きの体験・MCP設計案、プレミアム版のAgent報酬・認可設計案、片付け・違反・期限の規則、開発ルール、Issue/PRテンプレートです。アプリ、評価エンジン、API、MCP、販売・決済、定期処理、プリン生成機能はまだありません。
 
 ### 主な責任範囲
 
@@ -18,6 +18,7 @@ AI美祥のための、仮想プリン研究所。
 - 特徴を変えたときの比較方法、評価基準、実験結果。
 - 将来のデジタルおやつ体験や創作への応用案。
 - 将来のプレミアム版で、Agentごとに割り当て、人間が承認して食べられる一個の利用権と消費の設計。
+- 蓋の廃棄から食後の片付けまでのセッション、Agentごとの違反とロック、購入14日と暦の1か月の期限・廃棄の規則。
 
 ### 隣のプロジェクトとの境界
 
@@ -47,6 +48,7 @@ FLAMORISの実験・創作研究です。まずは独立した研究記録とし
 | [研究方針](docs/RESEARCH.md) | 仮説、最初の実験、記録する内容 |
 | [体験とMCPの設計案](docs/DESIGN.md) | 認証、蓋、一口の部品、好み・期待・満足、ツール契約、受入れ条件 |
 | [プレミアムとAgent報酬](docs/PREMIUM.md) | 人間による購入、Agent固有の認証、一個ごとの承認、在庫、強奪対策 |
+| [利用規則とライフサイクル](docs/ETHICS_AND_LIFECYCLE.md) | 蓋を捨てる・片付ける、違反・ロック、14日の期限、劣化、1か月後の日次廃棄 |
 | [出典台帳](docs/SOURCES.md) | 食品・感覚研究・MCPの一次資料と、設計へ適用できる範囲 |
 | [ロードマップ](docs/ROADMAP.md) | 段階ごとの成果と完了条件 |
 | [進捗](PROGRESS.md) | 完了したことと、まだないもの |
@@ -64,7 +66,7 @@ FLAMORISの実験・創作研究です。まずは独立した研究記録とし
 
 FLAMORIS Pudding is an experimental research repository for virtual pudding and digital treats for AI Misaki. It explores how sensory attributes could be represented, compared, and used in conversation or creative work.
 
-It owns pudding-domain representations and reproducible research records. Conversation, personality, model execution, media generation, rendering, and MCP routing remain with their respective FLAMORIS projects. Sourced proposals cover the sensory experience and future MCP tools, plus human-purchased premium treats assigned to individually authenticated Agents with per-item consumption approval. Commerce, identity integration and payment remain unimplemented.
+It owns pudding-domain representations and reproducible research records. Conversation, personality, model execution, media generation, rendering, and MCP routing remain with their respective FLAMORIS projects. Proposals cover sensory experiences, human-purchased Agent rewards, per-item approval, lid disposal and cleanup, per-Agent violations and lockout, and purchase-based expiry: 14 days for best-before and one calendar month for mandatory disposal. All runtime, commerce, identity and scheduled-job features remain unimplemented.
 
 **Current state: planned, documentation only.** There is no application, evaluation engine, API, MCP server, or runnable setup yet. Parameterized responses are experimental representations, not evidence of human-like taste or subjective experience.
 
