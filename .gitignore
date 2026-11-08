@@ -24,4 +24,15 @@ tmp/
 temp/
 .cache/
 
-# Language- and runtime-specific ignores belong in each generated repository.
+# Local research state and Python build outputs
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+build/
+dist/
+*.sqlite3
+*.sqlite3-*
+*.db
+*.db-*
+
