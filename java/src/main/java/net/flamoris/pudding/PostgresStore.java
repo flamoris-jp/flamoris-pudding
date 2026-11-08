@@ -33,6 +33,28 @@ public final class PostgresStore {
             }catch(SQLException|RuntimeException e){c.rollback();throw e;}
         }
     }
+    /** Explicit owner-side grants for an existing, unprivileged login role. */
+    public static void grantRuntime(Connections connections,String role)throws SQLException {
+        if(role==null||!role.matches("[a-z][a-z0-9_]{0,62}"))throw new IllegalArgumentException("runtime role");
+        try(var c=connections.open()) {
+            c.setAutoCommit(false);
+            try {
+                limits(c);
+                try(var s=c.prepareStatement("SELECT rolsuper,rolcreatedb,rolcreaterole,rolcanlogin FROM pg_roles WHERE rolname=?")) {
+                    s.setString(1,role);try(var r=s.executeQuery()){if(!r.next()||r.getBoolean(1)||r.getBoolean(2)||r.getBoolean(3)||!r.getBoolean(4))throw new SQLException("runtime role must be an unprivileged existing login");}
+                }
+                try(var s=c.createStatement()) {
+                    String target="\""+role+"\"";
+                    s.execute("GRANT USAGE ON SCHEMA public TO "+target);
+                    s.execute("GRANT SELECT ON pudding_config TO "+target);
+                    s.execute("GRANT SELECT,INSERT,UPDATE ON pudding_agents,pudding_sessions TO "+target);
+                    s.execute("GRANT SELECT,INSERT ON pudding_requests,pudding_events TO "+target);
+                    s.execute("GRANT USAGE ON SEQUENCE pudding_events_id_seq TO "+target);
+                }
+                c.commit();
+            }catch(SQLException|RuntimeException e){c.rollback();throw e;}
+        }
+    }
     private int config(Connection c)throws SQLException {
         try(var s=c.prepareStatement("SELECT schema_version,rules_version,threshold FROM pudding_config WHERE singleton")){
             try(var r=s.executeQuery()){
@@ -41,7 +63,7 @@ public final class PostgresStore {
             }
         }
     }
-    private static void limits(Connection c)throws SQLException {try(var s=c.createStatement()){s.execute("SET LOCAL lock_timeout='5s'");s.execute("SET LOCAL statement_timeout='10s'");}}
+    private static void limits(Connection c)throws SQLException {try(var s=c.createStatement()){s.execute("SET LOCAL lock_timeout='5s'");s.execute("SET LOCAL statement_timeout='10s'");s.execute("SET LOCAL transaction_timeout='12s'");}}
     private Policy lockActor(Connection c)throws SQLException {
         int threshold=config(c);
         try(var s=c.prepareStatement("INSERT INTO pudding_agents(id,policy) VALUES(?,?) ON CONFLICT DO NOTHING")){

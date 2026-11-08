@@ -1,0 +1,59 @@
+name: Standalone Docker and Updater
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  standalone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_USER: pudding_test
+          POSTGRES_PASSWORD: synthetic-ci-only
+          POSTGRES_DB: pudding_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U pudding_test -d pudding_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Check out the inspected Updater contract
+        uses: actions/checkout@v4
+        with:
+          repository: flamoris-jp/flamoris-updater
+          ref: d3390f5dfbd1b1fe453df714d8219a12cec2706e
+          path: _updater
+      - name: Install validation runtime
+        run: python3 -m pip install ./_updater
+      - name: Build actual candidate images
+        run: |
+          docker build --build-arg SOURCE_REVISION=${{ github.sha }} --build-arg APP_VERSION=0.3.0 -t pudding-ci:0.3.0 .
+          docker build --build-arg SOURCE_REVISION=${{ github.sha }} --build-arg APP_VERSION=0.3.1 -t pudding-ci:0.3.1 .
+      - name: Real Updater install/update and HTTPS MCP
+        env:
+          PUDDING_TEST_ALLOW_SCHEMA: 'true'
+          PUDDING_TEST_ADMIN_DSN: postgresql://pudding_test:synthetic-ci-only@127.0.0.1:5432/pudding_test
+        run: >-
+          sudo --preserve-env=PUDDING_TEST_ALLOW_SCHEMA,PUDDING_TEST_ADMIN_DSN
+          "$(command -v python3)" scripts/verify_standalone_install.py
+          --image pudding-ci:0.3.0 --next-image pudding-ci:0.3.1
+          --revision ${{ github.sha }}
+      - name: Build a reviewable release candidate
+        run: |
+          docker save --output /tmp/pudding-image.tar pudding-ci:0.3.0
+          python3 scripts/build_pudding_release.py --image-tar /tmp/pudding-image.tar --release 0.3.0 --revision ${{ github.sha }} --platform linux/amd64 --base-url https://github.com/flamoris-jp/flamoris-pudding/releases/download/v0.3.0 --output candidate
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pudding-standalone-candidate-${{ github.sha }}
+          path: candidate/
+          retention-days: 7

@@ -1,5 +1,13 @@
 # Progress 🍮
 
+## 2026-11-08 — 単独HTTP/MCP・Docker・Updater：検証中
+
+- PR #7のJavaコア/PostgreSQL保存をmainへマージ済み。次スライスはブランチ `feat/standalone-mcp-docker-updater-20261108`。
+- Java HTTP/MCP、管理側が固定するAgent別資格情報、Origin/Host/入力制限、通信と食事セッションの分離を実装。HTTP値型を最小限再利用し、既存の認証・Kernelは含めない。
+- Dockerfile、Compose/HTTPS入口例、初回DB権限付与、実イメージからのUpdaterカタログ生成、資格情報作成を追加。
+- ローカル：Javaコア16・HTTP/MCP10シナリオ、Python60テストと既存の数値/状態照合が成功。実Docker/Updater/HTTPSの隔離CIはこれから実行し、成功後に確定する。
+- 次の操作：PRで隔離CIを実行し、導入・更新・MCP・再送・DB/資格情報保持を確認。公開Release、実ホストのDB初期化・配備、購入/有料承認はまだ行っていない。
+
 ## 2026-11-08 — Javaコア・PostgreSQL保存の実装
 
 - Javaへ数値・期限・会計候補・食事セッション・違反/ロックを移植。Python版は照合用として残す。味232通り・期限25条件・状態遷移14応答・会計候補IDの一致を確認。

@@ -32,6 +32,7 @@ def main():
     shutil.copytree(ROOT / 'java/src/main/resources', build, dirs_exist_ok=True)
     cp = os.pathsep.join([str(build), str(ROOT / 'java/target/dependency/*')])
     subprocess.run(['java', '-cp', cp, 'net.flamoris.pudding.CoreTest'], check=True)
+    subprocess.run(['java', '-cp', cp, 'net.flamoris.pudding.http.HttpTest'], check=True)
     result = subprocess.run(['java', '-cp', cp, 'net.flamoris.pudding.ParityVectors'], check=True, capture_output=True, text=True)
     data = json.loads(result.stdout)
     for v in data['sensory']:

@@ -1,0 +1,19 @@
+# Include in an existing HTTPS reverse proxy. Provision real certificates separately.
+server {
+    listen 443 ssl;
+    server_name pudding.example;
+    ssl_certificate /protected/path/fullchain.pem;
+    ssl_certificate_key /protected/path/privkey.pem;
+    client_max_body_size 64k;
+    client_body_timeout 10s;
+    location = /mcp {
+        proxy_pass http://127.0.0.1:8789;
+        proxy_http_version 1.1;
+        proxy_set_header Host $http_host;
+        proxy_set_header Connection close;
+        proxy_read_timeout 25s;
+        proxy_send_timeout 10s;
+        proxy_buffering off;
+    }
+    location / { return 404; }
+}
