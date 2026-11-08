@@ -2,6 +2,15 @@
 
 2026-11-08。単独サービスのdevelopment prereleaseを、成功したmain CIの候補から公開する工程。現在の対象は `linux/amd64`。アプリの実機導入・DB作成・HTTPS設定・Updaterへのカタログ登録は別の操作である。
 
+## 公開済みの版と次の公開
+
+| 版 | 確認した到達点 |
+|---|---|
+| 0.3.0 | 初回のdevelopment prerelease、Updater導入、専用トンネルで試食と片付け |
+| 0.3.1 | 通信セッション429対策、0.3.0からのUpdater互換更新、常駐トンネル22回の連続読み取り |
+
+0.3.0と0.3.1のタグ/Releaseは公開済み。以下の公開操作を同じ版へ繰り返さない。次の公開ではアプリ版と候補生成の設定を更新し、互換性を検証した旧版だけを指定してmain CIを通す。文書だけの更新はアプリの再公開・再配備を必要としない。現在の配布結果は[進捗](../PROGRESS.md)を参照。
+
 ## ソースと候補の対応
 
 `.github/workflows/release.yml` は同じ40桁ソースSHAについて、mainへのpushで実行された次の3本の最新runがすべて成功していることを確認する。
@@ -37,11 +46,11 @@ gh workflow run release.yml --repo flamoris-jp/flamoris-pudding --ref main -F pu
 
 ## development prereleaseを公開する
 
-アプリの `java/src/main/resources/pudding-version.txt` と同じ版のタグを、mainのCIが成功したコミットへ付けてpushする。例の `FULL_MAIN_COMMIT_SHA` を選択した実際の40桁SHAへ置き換える。
+アプリの `java/src/main/resources/pudding-version.txt` と同じ未公開版のタグを、mainのCIが成功したコミットへ付けてpushする。例の `NEXT_VERSION` は検証済みの未公開版、`FULL_MAIN_COMMIT_SHA` は選択した実際の40桁SHAへ置き換える。
 
 ```bash
-git tag v0.3.0 FULL_MAIN_COMMIT_SHA
-git push origin v0.3.0
+git tag vNEXT_VERSION FULL_MAIN_COMMIT_SHA
+git push origin vNEXT_VERSION
 ```
 
 タグpushで次の順に実行する。
@@ -57,9 +66,11 @@ Actions artifactは7日保持。候補が失効・削除されている場合は
 
 ## 公開後のUpdater登録
 
-初回0.3.0のversion付きカタログURLは次の形になる。実際に公開されたファイルの取得とハッシュを確認した後に登録する。
+公開済み0.3.1のversion付きカタログURL：
 
-`https://github.com/flamoris-jp/flamoris-pudding/releases/download/v0.3.0/catalog.json`
+`https://github.com/flamoris-jp/flamoris-pudding/releases/download/v0.3.1/catalog.json`
+
+0.3.1のカタログは `compatible_from=["0.3.0"]` を明示し、実際の更新と既存設定・DB状態の保持を確認した。新規導入と互換更新は別操作であり、既存DBへ初回DDLを再実行しない。別の版を公開した場合は、その版の実ファイル取得とハッシュを確認してから登録する。
 
 prereleaseをLatestのURLで代用しない。DB/runtimeロールとHTTPS入口は[単独サービス手順](STANDALONE_SERVICE.md)に従って用意する。この公開工程はサーバーの設定やDBを変更しない。
 

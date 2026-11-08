@@ -6,9 +6,9 @@
 
 ## 接続と認証
 
-HTTPSクライアント → HTTPSリバースプロキシ → Puddingの `/mcp` → Javaコア → PostgreSQL。アプリとDBは別ホストに配置できる。環境固有のホスト名や資格情報は公開設定へ固定しない。導入・更新にはUpdaterを使う。
+外部クライアント → 専用トンネルまたはHTTPSリバースプロキシ → Puddingのloopback `/mcp` → Javaコア → PostgreSQL。アプリとDBは別ホストに配置できる。環境固有のホスト名や資格情報は公開設定へ固定しない。導入・更新にはUpdaterを使う。
 
-現在の接続方式は、管理者がAgentごとに発行するBearer資格情報の手動設定。OAuthの認可サーバー・discovery・人間ログインはない。任意のOAuth専用クライアントやChatGPT接続の受入れ完了を示すものではない。手動Bearer設定に対応するMCPクライアントが対象。
+現在の接続方式は、管理者がAgentごとに発行するBearer資格情報の手動設定。OAuthの認可サーバー・discovery・人間ログインはない。専用トンネルが通常通信とdiscoveryへ個別Bearerを付ける構成で、ChatGPTの限定試食と0.3.1の連続読み取りを受け入れた。任意のOAuth専用クライアントへ接続できることは意味しない。手動Bearer設定に対応するMCPクライアントが対象。
 
 - 資格情報はAgentごとに別の乱数トークンを発行し、管理側の設定でAgent IDに固定する。同じトークンを複数Agentへ配らない。
 - トークンは43〜128文字のURL-safe形式。認証にはハッシュと定数時間比較を使い、HTTPリクエストや秘密値をログへ出さない。
@@ -42,12 +42,12 @@ MCP revision `2025-11-25` のStreamable HTTP・JSON応答を扱う。独立HTTP/
 
 入力は本文64KiB、メタデータ16KiB、ヘッダー64個、JSON深さ32・ノード10000まで。重複キー・ヘッダー、不正UTF-8/サロゲート、曖昧なHTTPフレーミングを拒否する。接続は最大16、通信寿命15秒。DBはlock/statement/transactionにも時間制限を持ち、通信切断後の結果は同じrequest_idで照合する。別IDで食べ直さない。
 
-`PUDDING_ALLOWED_HOSTS` は正確なHost authorityのカンマ区切り。Originがある場合は `PUDDING_ALLOWED_ORIGINS` に登録したHTTPS Originのみ許可。空欄ではブラウザーOriginを拒否する。CORS wildcardや引数のAgent名を認証に使わない。backendは平文HTTPなので、外部へはHTTPSの入口を用意し、backendを直接公開しない。
+`PUDDING_ALLOWED_HOSTS` は正確なHost authorityのカンマ区切り。Originがある場合は `PUDDING_ALLOWED_ORIGINS` に登録したHTTPS Originのみ許可。空欄ではブラウザーOriginを拒否する。CORS wildcardや引数のAgent名を認証に使わない。backendは平文HTTPなので、外部へは暗号化された専用トンネルまたはHTTPS入口を用意し、backendを直接公開しない。
 
 ## Docker実行
 
 ```bash
-docker build --build-arg SOURCE_REVISION=FULL_COMMIT_SHA --build-arg APP_VERSION=0.3.0 -t pudding:0.3.0 .
+docker build --build-arg SOURCE_REVISION=FULL_COMMIT_SHA --build-arg APP_VERSION=0.3.1 -t pudding:0.3.1 .
 ```
 
 `FULL_COMMIT_SHA` は実際の40桁SHAへ置き換える。[runtime.env.example](../deploy/runtime.env.example)を参考に、DB接続・個別token・Hostを保護されたローカル設定へ用意する。例のtokenは起動できないプレースホルダー。
@@ -65,8 +65,8 @@ PostgreSQL 18を対象とする。DB管理側でPudding専用DB、schema所有�
 管理用のDB接続を保護されたowner.envへ用意し、初回だけアプリ所有の処理を実行する。
 
 ```bash
-docker run --rm --env-file /protected/path/owner.env pudding:0.3.0 migrate-postgres
-docker run --rm --env-file /protected/path/owner.env pudding:0.3.0 grant-runtime-postgres
+docker run --rm --env-file /protected/path/owner.env pudding:0.3.1 migrate-postgres
+docker run --rm --env-file /protected/path/owner.env pudding:0.3.1 grant-runtime-postgres
 ```
 
 owner.envには `PUDDING_JDBC_URL`、`PUDDING_DB_USER`、`PUDDING_DB_PASSWORD` と、権限付与先の `PUDDING_RUNTIME_ROLE` を指定する。接続先はコンテナーから到達できる名前を使う。runtime側へ管理者の資格情報を渡さない。grantは既存の非superuser・非CREATEDB/CREATEROLE・LOGINロールを確認して必要なtable/sequence権限を付ける。管理側でロールの所有権・所属・接続元制限も確認する。
@@ -78,8 +78,8 @@ owner.envには `PUDDING_JDBC_URL`、`PUDDING_DB_USER`、`PUDDING_DB_PASSWORD` �
 PuddingのリポジトリでDocker save archiveとカタログを作る。Updaterはソースをclone/buildしない。イメージconfig digest、archiveのSHA-256、プラットフォーム、版、ソースSHA、非root設定を実物から照合する。
 
 ```bash
-docker save --output /tmp/pudding-image.tar pudding:0.3.0
-python3 scripts/build_pudding_release.py --image-tar /tmp/pudding-image.tar --release 0.3.0 --revision FULL_COMMIT_SHA --platform linux/amd64 --base-url https://github.com/flamoris-jp/flamoris-pudding/releases/download/v0.3.0 --output candidate
+docker save --output /tmp/pudding-image.tar pudding:0.3.1
+python3 scripts/build_pudding_release.py --image-tar /tmp/pudding-image.tar --release 0.3.1 --compatible-from 0.3.0 --revision FULL_COMMIT_SHA --platform linux/amd64 --base-url https://github.com/flamoris-jp/flamoris-pudding/releases/download/v0.3.1 --output candidate
 ```
 
 生成物はcandidateで、この生成コマンドはGitHub Releaseの公開やUpdaterへの登録を行わない。Dockerのruntime IDとarchive内config digestが異なる場合も、config digestをarchiveから導出する。公開には[配布手順](RELEASING.md)のworkflowを使い、成功したmain CIの同じイメージを検証・アップロード後の取得/ハッシュ照合を経てprereleaseへ公開する。Actions artifactはレビュー用でありUpdaterの配布元ではない。実URLとハッシュを確認してから登録する。
@@ -92,7 +92,7 @@ Updaterでは導入→awaiting_setup→起動→DB/初期設定の確認→導�
 
 ## 検証範囲
 
-ローカルではJavaコア16、HTTP/MCP10、設定3シナリオ、Python60テスト、既存の数値・状態照合が成功。コミット `6548169` の隔離CIで、JDK25/PostgreSQL18（runtime権限を含む11シナリオ）と実Docker/Updater/TLSの4シナリオも成功した。実Updaterの導入/更新・合成TLS入口・MCP操作・再起動再送・DB/設定保持を確認している。最終コミットの結果は[PR #8のChecks](https://github.com/flamoris-jp/flamoris-pudding/pull/8/checks)を参照する。CIのダウンロードはローカル候補へ置換し、公開URLからのダウンロードや実環境の導入成功とは区別する。
+0.3.1ではローカルのJavaコア16・HTTP/MCP14・設定3シナリオ、Python66テスト、既存の数値・状態照合が成功。コミット `6548169` の隔離CIで、JDK25/PostgreSQL18（runtime権限を含む11シナリオ）と実Docker/Updater/TLSの4シナリオも成功した。実Updaterの導入/更新・合成TLS入口・MCP操作・再起動再送・DB/設定保持を確認している。初回実装は[PR #8のChecks](https://github.com/flamoris-jp/flamoris-pudding/pull/8/checks)、429対策と40回の再接続を含む最終検証は[PR #11のChecks](https://github.com/flamoris-jp/flamoris-pudding/pull/11/checks)を参照する。CIのダウンロードはローカル候補へ置換し、公開URLからのダウンロードや実環境の導入成功とは区別する。
 
 Updaterの照合対象は公開ソースのcommit `d3390f5dfbd1b1fe453df714d8219a12cec2706e`。実ホストの導入済み版を確認したことは意味しない。配備時はServer Managerで状態を確認し、Updaterの利用可能な版とカタログの契約を照合する。
 

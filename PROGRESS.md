@@ -1,5 +1,12 @@
 # Progress 🍮
 
+## 2026-11-08 — 文書全体を0.3.1の到達点へ統一
+
+- ロードマップのRelease公開・試験導入・認証済Agentの試食を完了として反映し、DB復元・ホスト再起動・証明書更新・有料承認と分離した。
+- Java移植手順の旧SNAPSHOT/未配備表記、Python照合版の「次のサービスは未実装」表記を修正。Java/PostgreSQLの正本とPython/SQLiteの研究経路を区別する。
+- 単独サービスの接続説明へ専用トンネルを追加し、ビルド/カタログ例を0.3.1へ更新。配布手順では公開済みタグの再作成を避け、文書更新だけでアプリを再公開しないことを明記した。
+- 実機受入れ済みの事実を整理する文書変更であり、新しいアプリ配備やサーバー設定変更は行わない。
+
 ## 2026-11-08 — 0.3.1公開・互換更新・実トンネルでの連続受入れ
 
 - [PR #11](https://github.com/flamoris-jp/flamoris-pudding/pull/11)をマージ。ソース `ee08b0373bddc6397d9b906b96ceb08369def945` のmain CIがすべて成功し、[v0.3.1](https://github.com/flamoris-jp/flamoris-pudding/releases/tag/v0.3.1)をdevelopment prereleaseとして公開した。配布工程の実行 `42483354273` はverify/publishとも成功し、取得後のSHA-256照合も通過した。

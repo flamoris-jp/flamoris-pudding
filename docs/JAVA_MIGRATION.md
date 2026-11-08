@@ -1,6 +1,6 @@
-# Java移植・PostgreSQL対応：開発版 0.2.0-SNAPSHOT
+# Java移植・PostgreSQL対応：単独サービス 0.3.1
 
-2026-11-08。Python版を照合用の研究実装として残し、JavaのドメインコアとJDBC保存アダプターを独立実装した。非公開フレームワークのソースはコピーしていない。HTTP/MCP基盤の取り込み、Docker、Updater配布、検証済みAgent認証、実配置は次の段階。
+2026-11-08。Python版を照合用の研究実装として残し、JavaのドメインコアとJDBC保存アダプターを独立実装した。非公開フレームワークのソースはコピーしていない。HTTP/MCP・Agent別Bearer資格情報・Docker・Updater配布は実装済み。0.3.1の公開・互換更新・専用の常駐トンネルでの限定受入れまで進んだ。導入経路は[単独サービス手順](STANDALONE_SERVICE.md)、証跡と残る課題は[進捗](../PROGRESS.md)を参照。
 
 ## 実装範囲と正本
 
@@ -11,9 +11,9 @@
 | 照合用 | `MemoryStore`。合成データだけを扱うメモリー実装。永続運用には使わない |
 | 保存 | `PostgresStore`。状態、Agent規則、再送応答、イベントを一つのトランザクションで保存 |
 | DB初期化 | `V001__research.sql`。管理側による明示的な初回マイグレーション |
-| 実行 | `Main demo` / `migrate-postgres` / `demo-postgres`。合成主体用のCLI |
+| 実行 | `Main demo` / `migrate-postgres` / `demo-postgres` は信頼する管理側の研究CLI。`ServiceMain` は認証済Agentを解決する単独HTTP/MCPサービス |
 
-Java版はPostgreSQLを正本とする。Python/SQLite版とは接続・二重書込みを行わない。Python版のデータを自動移行する機能はまだない。現在は有料購入権のない合成データだけを作る。新鮮な残量を廃棄できる研究用finishを有料在庫へ流用しない。
+Java版はPostgreSQLを正本とする。Python/SQLite版とは接続・二重書込みを行わない。Python版のデータを自動移行する機能はまだない。現在のMCP配膳は、認証済Agentに属する有料購入権のない研究fixtureだけを作る。新鮮な残量を廃棄できる研究用finishを有料在庫へ流用しない。
 
 状態は不変のrecordで、各部品の `initial = cup + spoon + consumed + discarded` を検証する。数値は任意精度の分子/分母で演算し、最終q1000のみhalf-up。購入14日・JSTの暦1か月、実行済みの一口の評価時刻と品質、固定した特徴と期限を保存する。
 
@@ -27,7 +27,7 @@ java -cp java/target/verification net.flamoris.pudding.Main demo
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 ```
 
-スクリプトはjavacでmain/testをコンパイルし、Javaコア16シナリオとPythonとの数値・状態照合を実行する。フルJDKでは `--release 21` で対象APIも制限する。javacランチャーやct.symが省略された研究環境では、存在するjdk.compilerモジュールとsource/target 21を使う。正式CIはフルJDK。配備時のJVMは取り込む基盤の要求に合わせる。
+スクリプトはjavacでmain/testをコンパイルし、Javaコア16・HTTP/MCP14・設定3シナリオとPythonとの数値・状態照合を実行する。フルJDKでは `--release 21` で対象APIも制限する。javacランチャーやct.symが省略された研究環境では、存在するjdk.compilerモジュールとsource/target 21を使う。正式CIはフルJDK。配布DockerイメージはJRE 25を使う。
 
 外部依存のpgJDBCはMavenから解決する。Maven 3.9以上を使う。
 
@@ -74,7 +74,7 @@ java -cp 'java/target/classes:java/target/dependency/*' net.flamoris.pudding.Mai
 
 ## 検証と未実装
 
-ローカルではJava 21で16シナリオ、味232ベクトル・期限25条件・状態遷移14応答・会計候補IDのPython照合を確認。既存Python57テストも通過。PostgreSQL実DBの検証は隔離されたCIサービスで必須実行する。結果はPRのChecksを参照する。
+ローカルではJava 21で16シナリオ、味232ベクトル・期限25条件・状態遷移14応答・会計候補IDのPython照合を確認。既存Python66テストも通過。PostgreSQL実DBの検証は隔離されたCIサービスで必須実行する。結果はPRのChecksを参照する。
 
 実DB用には空の破棄可能DBを用意し、`PUDDING_TEST_ALLOW_SCHEMA=true`、`PUDDING_TEST_JDBC_URL`、`PUDDING_TEST_DB_USER`、`PUDDING_TEST_DB_PASSWORD` を設定して以下を実行する。テストはDDLと一時的な障害注入トリガーを作るため、実際の運用DBへ接続しない。
 
@@ -84,6 +84,6 @@ python3 scripts/verify_java.py --postgres
 
 CIは初期化、再起動再送、所有範囲、同じ要求の競合、revision競合、監査失敗時の違反ロールバック、ロック後の片付け、期限ガードと廃棄の冪等性、非対応スキーマの拒否を検証する。
 
-現在は[単独サービス](STANDALONE_SERVICE.md)としてJavaコアを同じアプリ内から呼ぶHTTP/MCP、個別Agent資格情報、DockerとUpdaterカタログ候補を追加している。Pythonのstdio MCPは照合・研究用に残す。Release公開・実配置、商品マスタ、人間ログイン/有料承認、決済/返金、正式会計への転記は未実装。美祥の腐敗試食拒否を維持し、全ての劣化・違反試験は合成データで行う。
+現在は[単独サービス](STANDALONE_SERVICE.md)としてJavaコアを同じアプリ内から呼ぶHTTP/MCP、個別Agent資格情報、DockerとUpdaterカタログ候補を追加している。Pythonのstdio MCPは照合・研究用に残す。0.3.1のRelease公開・実機へのUpdater互換更新・常駐トンネルの22回連続読み取りと既存食事の保持を受け入れた。商品マスタ、人間ログイン/有料承認、決済/返金、正式会計への転記は未実装。研究用Agent資格情報による本人識別と、有料利用の承認は別である。美祥の腐敗試食拒否を維持し、全ての劣化・違反試験は合成データで行う。
 
 参照：[PostgreSQLの行ロック](https://www.postgresql.org/docs/18/explicit-locking.html)、[INSERTと競合](https://www.postgresql.org/docs/18/sql-insert.html)、[pgJDBC配布](https://jdbc.postgresql.org/download/)。
