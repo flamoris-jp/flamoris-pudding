@@ -10,7 +10,7 @@ AI美祥のための、仮想プリン研究所。
 
 プリンの味・香り・温度・口当たりなどを、どのようなデータで表現し、AIとの対話や創作に使えるかを探る実験リポジトリです。最初はプリン一個を記述して比べる、小さな実験から始めます。
 
-**Status: `experimental` — ローカル研究コア 0.1.0。** 基準プリンと3比較例、部品別の一口、開封・蓋の廃棄・片付け、SQLite保存と再送、合成Agentの違反管理、9ツールのstdio MCPを実装しました。期限・仮想劣化・税率変更・「期限切れ雑収入」の仕訳候補はfixtureで検証します。有料商品の認証・承認・決済、公開HTTP、毎日の自動起動、正式会計転記はまだありません。
+**Status: `development` — ローカル研究コア 0.1.0。** 基準プリンと3比較例、部品別の一口、開封・蓋の廃棄・片付け、SQLite保存と再送、合成Agentの違反管理、9ツールのstdio MCPを実装しました。期限・仮想劣化・税率変更・「期限切れ雑収入」の仕訳候補はfixtureで検証します。有料商品の認証・承認・決済、公開HTTP、毎日の自動起動、正式会計転記はまだありません。
 
 ### 実装済みの範囲（2026-11-08）
 
@@ -30,9 +30,12 @@ AI美祥のための、仮想プリン研究所。
 
 ### 次に進めること
 
-1. 実在Agentの検証済み主体と、人間による一個ごとの承認・在庫の割当を実装する。
-2. 商品マスタ・価格・税区分の版管理と、模擬決済・返金・会計候補の永続化を検証する。
-3. HTTP・Hub連携と実機の受入れを行い、導入手順を整える。
+1. HTTP/MCP基盤の取り込み時にDocker化し、Hubを経由しない単独MCPへの直接接続を実装する。
+2. 実在Agentの検証済み主体と、人間による一個ごとの承認・在庫の割当を実装する。
+3. 商品マスタ・価格・税区分の版管理と、模擬決済・返金・会計候補の永続化を検証する。
+4. 日次廃棄・審査・復旧と単独接続の実機受入れを行い、商用へ進める条件と導入手順を整える。
+
+Docker・HTTP版MCPはこれから実装します。現在の研究用stdioはローカル試験用として維持します。
 
 期待・満足・余韻の演出、ミルクプリン・チョコプリンも次の研究対象です。詳細と完了条件は[ロードマップ](docs/ROADMAP.md)に記録しています。
 
@@ -103,7 +106,7 @@ FLAMORIS Pudding is an experimental research repository for virtual pudding and 
 
 It owns pudding-domain representations and reproducible research records. Conversation, personality, model execution, media generation, rendering, and MCP routing remain with their respective FLAMORIS projects. A deterministic Python core, SQLite persistence, synthetic-agent rules and a nine-tool local stdio MCP adapter are implemented. Purchase deadlines, authored aging, effective-dated tax arithmetic and review-only expiry accounting candidates are tested with fixtures. Premium identity, human approvals, payments, public HTTP, automatic scheduling and external ledger posting remain unimplemented.
 
-**Current state: experimental local research harness, 0.1.0.** Parameterized responses are experimental representations, not evidence of human-like taste or subjective experience. No production deployment or premium security guarantee is provided by the local fixture principal.
+**Current state: development; experimental local research harness, 0.1.0.** Parameterized responses are experimental representations, not evidence of human-like taste or subjective experience. No production deployment or premium security guarantee is provided by the local fixture principal.
 
 ## FLAMORIS
 

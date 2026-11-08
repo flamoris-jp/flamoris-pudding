@@ -1,5 +1,12 @@
 # Progress 🍮
 
+## 2026-11-08 — development・独立Dockerサービスの方針
+
+- 開発ステータスをdevelopmentとしてREADMEにも反映。現時点の機能は引き続きローカル研究版0.1.0。
+- HTTP/MCP基盤の取り込み時にDocker化し、MCPはHubを経由せず単独エンドポイントへ直接接続する方針を固定。
+- ロードマップへ実行順序、権限の責任、永続化、移植/接続方法の判断、運用受入れを追記。研究用stdioは残す。
+- 方針と文書の更新であり、基盤のソース取り込み、Docker/HTTPの実装、実在Agent認証、配備は未実施。
+
 ## 2026-11-08 — 研究版をmainへ統合・README更新
 
 - [PR #4](https://github.com/flamoris-jp/flamoris-pudding/pull/4)のレビュー修正を含む研究版をmainへ統合。57テストとPython 3.11/3.12/3.13のCI成功を確認。
