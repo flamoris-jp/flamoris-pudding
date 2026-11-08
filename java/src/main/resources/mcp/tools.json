@@ -1,0 +1,305 @@
+[
+  {
+    "name": "pudding.presets.list",
+    "description": "List authored synthetic research presets.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "pudding.sessions.create",
+    "description": "Create one local research serving.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36
+        },
+        "preset_id": {
+          "type": "string",
+          "maxLength": 64,
+          "default": "custard-v0"
+        }
+      },
+      "required": [
+        "request_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "pudding.sessions.get",
+    "description": "Read a serving without advancing time or food.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36
+        }
+      },
+      "required": [
+        "session_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "pudding.lid.peel",
+    "description": "Peel part of the lid; 1000 is fully open.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36
+        },
+        "request_id": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "amount_q": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1000
+        }
+      },
+      "required": [
+        "session_id",
+        "request_id",
+        "expected_revision",
+        "amount_q"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "pudding.lid.dispose",
+    "description": "Move the detached lid into the virtual bin.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36
+        },
+        "request_id": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "session_id",
+        "request_id",
+        "expected_revision"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "pudding.spoon.scoop",
+    "description": "Move exact component masses onto one spoon.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36
+        },
+        "request_id": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "body_mg": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        },
+        "sauce_mg": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100000
+        }
+      },
+      "required": [
+        "session_id",
+        "request_id",
+        "expected_revision",
+        "body_mg",
+        "sauce_mg"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "pudding.spoon.taste",
+    "description": "Consume the loaded spoon exactly once.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36
+        },
+        "request_id": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "session_id",
+        "request_id",
+        "expected_revision"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "pudding.sessions.finish",
+    "description": "End research eating and discard leftovers.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36
+        },
+        "request_id": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "session_id",
+        "request_id",
+        "expected_revision"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "pudding.sessions.cleanup",
+    "description": "Clean the empty serving and close it.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "session_id": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36
+        },
+        "request_id": {
+          "type": "string",
+          "format": "uuid",
+          "maxLength": 36
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "session_id",
+        "request_id",
+        "expected_revision"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    }
+  }
+]

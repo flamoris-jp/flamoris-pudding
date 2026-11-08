@@ -10,7 +10,18 @@ AI美祥のための、仮想プリン研究所。
 
 プリンの味・香り・温度・口当たりなどを、どのようなデータで表現し、AIとの対話や創作に使えるかを探る実験リポジトリです。最初はプリン一個を記述して比べる、小さな実験から始めます。
 
-**Status: `development` — Java開発版 0.2.0-SNAPSHOT / Python研究版 0.1.0。** Javaの数値・食事コアとPostgreSQL保存を実装し、Python版との照合と隔離DBで検証します。Python/SQLiteの研究版と9ツールのstdio MCPは照合・研究用として残します。有料商品の認証・承認・決済、Java版HTTP/MCP、Docker配布、日次の自動起動、正式会計転記はまだありません。
+**Status: `development` — Java単独HTTP/MCP 0.3.0候補 / Python照合版 0.1.0。** Agent別資格情報を持つ研究用HTTP/MCP、PostgreSQL保存、Docker、Updater向け配布候補の生成を実装しました。人間の購入・一個ごとの有料承認・OAuth・正式会計・日次運用・実ホスト配備はこれからです。
+
+### 単独サービスと導入経路
+
+Hubを経由せず、HTTPS入口からPuddingのMCPへ直接接続します。認証で解決したAgent IDを固定し、他Agentのセッションを操作できないようにします。現在は管理者が登録するBearer資格情報の研究用配膳で、人間アカウント・有料承認とは別です。
+
+- 9ツールのStreamable HTTP（JSON応答）、通信セッションの制限、Host/Origin・入力検証。
+- 非root・read-onlyのDocker、HTTPS入口例、DBの版・runtime権限を確認するready。
+- Updaterの汎用Docker recipeで実イメージを導入・更新する経路。カタログは実物のconfig digest・SHA-256・版・ソースSHAから生成。
+- ローカルでJavaコア16・HTTP/MCP10・設定3シナリオとPython60テスト。隔離CIでは実PostgreSQL、Docker/Updaterの導入・更新、合成TLS越しのMCP、DB/資格情報/再送保持を確認します。最新の結果は[PR #8](https://github.com/flamoris-jp/flamoris-pudding/pull/8)のChecksを参照してください。
+
+実行・資格情報・DB初期化・配布候補の作成は[単独サービス手順](docs/STANDALONE_SERVICE.md)。実装を追加したことはReleaseの公開や実環境への配備ではありません。候補のカタログURLを、未公開のままUpdaterへ登録しないでください。
 
 ### Java移植・PostgreSQL対応（開発版）
 
@@ -21,7 +32,7 @@ python3 scripts/verify_java.py
 java -cp java/target/verification net.flamoris.pudding.Main demo
 ```
 
-Java版のMCP/HTTP・Docker・Updater配布・実配置は次の段階です。以下はPython研究版で確認した範囲です。
+JavaのHTTP/MCP・DockerとUpdater候補の手順は上記を参照。以下は最初のPython研究版で確認した範囲です。
 
 ### 実装済みの範囲（2026-11-08）
 
@@ -41,14 +52,12 @@ Java版のMCP/HTTP・Docker・Updater配布・実配置は次の段階です。�
 
 ### 次に進めること
 
-1. Javaコア・PostgreSQL保存の受入れを行い、HTTP/MCP基盤の取り込み時にDocker化する。MCPはHubを経由しない単独構成、導入と更新はUpdaterを使う。
-2. 実在Agentの検証済み主体と、人間による一個ごとの承認・在庫の割当を実装する。
-3. 商品マスタ・価格・税区分の版管理と、模擬決済・返金・会計候補の永続化を検証する。
-4. 日次廃棄・審査・復旧と単独接続の実機受入れを行い、商用へ進める条件と導入手順を整える。
+1. 配布候補と導入設定を確認し、自リポジトリのRelease/カタログ公開と実ホスト導入を行う。実機状態はServer Managerで確認し、Updaterでアプリを配置する。
+2. 実クライアントで単独MCPの接続・資格情報の管理・復旧を受け入れる。OAuth専用クライアントへの対応は別に検証する。
+3. 人間アカウントとAgentの管理、一個ごとの有料承認、商品・価格・税区分、模擬決済/返金、会計候補の永続化を実装する。
+4. 日次廃棄・片付け猶予・審査・バックアップ/復元と商用の受入れを進める。
 
-Docker・HTTP版MCPはこれから実装します。現在の研究用stdioはローカル試験用として維持します。
-
-期待・満足・余韻の演出、ミルクプリン・チョコプリンも次の研究対象です。詳細と完了条件は[ロードマップ](docs/ROADMAP.md)に記録しています。
+期待・満足・余韻、ミルク/チョコも研究対象です。詳細は[ロードマップ](docs/ROADMAP.md)。
 
 ### 主な責任範囲
 
@@ -83,6 +92,7 @@ FLAMORISの実験・創作研究です。まずは独立した研究記録とし
 
 | 資料 | 内容 |
 |---|---|
+| [単独HTTP/MCP・Docker・Updater](docs/STANDALONE_SERVICE.md) | 独立接続、Agent別資格情報、DB権限、配布候補、導入と検証 |
 | [Java移植・PostgreSQL](docs/JAVA_MIGRATION.md) | Javaコア、DB初期化、Python照合、JDBC実DB検証と未実装範囲 |
 | [実装と実行手順](docs/IMPLEMENTATION.md) | 起動、9ツール、SQLite、合成主体の境界、未実装事項 |
 | [実験001](docs/EXPERIMENT_001.md) | q1000尺度、基準と3比較例、80:20の一口、再現条件 |
@@ -118,7 +128,7 @@ demoは開封から片付けまでを通し、80:20の一口は甘味666・苦�
 
 FLAMORIS Pudding is an experimental research repository for virtual pudding and digital treats for AI Misaki. It explores how sensory attributes could be represented, compared, and used in conversation or creative work.
 
-It owns pudding-domain representations and reproducible research records. Conversation, personality, model execution, media generation, rendering, and MCP routing remain with their respective FLAMORIS projects. The original Python/SQLite research core and nine-tool local stdio MCP remain as a reference. A Java domain core and PostgreSQL JDBC adapter now implement typed sessions, durable replay, policy and audit transactions; cross-language verification and an isolated PostgreSQL CI job cover the migration. Purchase deadlines, authored aging, effective-dated tax arithmetic and review-only expiry accounting candidates are tested with fixtures. Premium identity, human approvals, payments, public HTTP, automatic scheduling and external ledger posting remain unimplemented.
+It owns pudding-domain representations and reproducible research records. Conversation, personality, model execution, media generation, rendering, and MCP routing remain with their respective FLAMORIS projects. The original Python/SQLite research core and nine-tool local stdio MCP remain as a reference. A Java domain core and PostgreSQL JDBC adapter now implement typed sessions, durable replay, policy and audit transactions; cross-language verification and an isolated PostgreSQL CI job cover the migration. Purchase deadlines, authored aging, effective-dated tax arithmetic and review-only expiry accounting candidates are tested with fixtures. An independent authenticated HTTP/MCP research service, Docker runtime and Updater candidate generator are implemented. Human accounts/premium approvals, payments, OAuth, automatic scheduling, external ledger posting and real-host rollout remain unimplemented.
 
 **Current state: development; experimental local research harness, 0.1.0.** Parameterized responses are experimental representations, not evidence of human-like taste or subjective experience. No production deployment or premium security guarantee is provided by the local fixture principal.
 

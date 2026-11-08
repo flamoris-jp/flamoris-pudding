@@ -32,6 +32,9 @@ __pycache__/
 build/
 dist/
 java/target/
+runtime.env
+*.credentials.json
+private/
 *.sqlite3
 *.sqlite3-*
 *.db

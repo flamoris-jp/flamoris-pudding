@@ -1,0 +1,8 @@
+*
+!java/
+!java/pom.xml
+!java/src/
+!java/src/main/
+!java/src/main/**
+!Dockerfile
+!LICENSE

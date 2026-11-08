@@ -20,7 +20,7 @@ public final class Json {
             }return out.append('"').toString();
         }
         if(value instanceof Boolean||value instanceof Integer||value instanceof Long||value instanceof java.math.BigInteger)return value.toString();
-        if(value instanceof Map<?,?> m){var parts=new ArrayList<String>();for(var e:m.entrySet()){if(!(e.getKey() instanceof String))throw new IllegalArgumentException("JSON key");parts.add(write(e.getKey())+":"+write(e.getValue()));}return "{"+String.join(",",parts)+"}";}
+        if(value instanceof Map<?,?> m){var sorted=new TreeMap<String,Object>();for(var e:m.entrySet()){if(!(e.getKey() instanceof String key))throw new IllegalArgumentException("JSON key");sorted.put(key,e.getValue());}var parts=new ArrayList<String>();for(var e:sorted.entrySet())parts.add(write(e.getKey())+":"+write(e.getValue()));return "{"+String.join(",",parts)+"}";}
         if(value instanceof List<?> l)return "["+String.join(",",l.stream().map(Json::write).toList())+"]";
         throw new IllegalArgumentException("unsupported JSON output");
     }

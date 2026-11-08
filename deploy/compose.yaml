@@ -1,0 +1,19 @@
+services:
+  pudding:
+    image: ${PUDDING_IMAGE:?select an immutable built image}
+    restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 512m
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,noexec,size=32m,mode=1777
+    env_file:
+      - ${PUDDING_ENV_FILE:?select the protected runtime.env}
+    environment:
+      PUDDING_HTTP_BIND: 0.0.0.0
+      PUDDING_HTTP_PORT: '8080'
+    ports:
+      - '127.0.0.1:${PUDDING_PORT:-8789}:8080'

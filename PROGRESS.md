@@ -1,5 +1,15 @@
 # Progress 🍮
 
+## 2026-11-08 — 単独HTTP/MCP・Docker・Updaterの実装と隔離検証
+
+- PR #7のJavaコア/PostgreSQL保存をmainへマージ済み。単独サービスと配布候補は[PR #8](https://github.com/flamoris-jp/flamoris-pudding/pull/8)で追加。
+- Java HTTP/MCP、管理側が固定するAgent別資格情報、Origin/Host/入力制限、通信と食事セッションの分離を実装。HTTP値型を最小限再利用し、既存の認証・Kernelは含めない。
+- Dockerfile、Compose/HTTPS入口例、初回DB権限付与、実イメージからのUpdaterカタログ生成、資格情報作成を追加。
+- ローカル：Javaコア16・HTTP/MCP10・設定3シナリオ、Python60テストと既存の数値/状態照合が成功。コミット `6548169` の隔離CIでも、PostgreSQL18の11シナリオと実Docker/Updater導入・更新・HTTPS操作・保持の4シナリオが成功。
+- 再起動をまたぐJSONのキー順を固定し、資格情報ファイルの親/権限とDBの過大権限を拒否する確認を追加。PostgreSQLの検証はruntime権限を含む11シナリオへ拡張。
+- 配布候補のメタデータにもarchiveから導出した実イメージIDを記録し、CLI経由の出力で確認する。統合はPR #8の最終コミットの全CI成功を条件とする。
+- 次は配布候補の公開・実ホスト導入の設定を具体化する。公開Release、実ホストのDB初期化・配備、購入/有料承認はまだ行っていない。
+
 ## 2026-11-08 — Javaコア・PostgreSQL保存の実装
 
 - Javaへ数値・期限・会計候補・食事セッション・違反/ロックを移植。Python版は照合用として残す。味232通り・期限25条件・状態遷移14応答・会計候補IDの一致を確認。

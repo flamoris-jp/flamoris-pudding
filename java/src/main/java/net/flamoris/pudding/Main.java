@@ -31,7 +31,7 @@ public final class Main {
             Object report;
             switch(args[0]){
                 case "demo" -> {var store=new MemoryStore(Clock.systemUTC(),3,null);report=Map.of("fixture_only",true,"steps",demo(store::execute));}
-                case "migrate-postgres","demo-postgres" -> {
+                case "migrate-postgres","grant-runtime-postgres","demo-postgres" -> {
                     var env=System.getenv();String url=Objects.requireNonNull(env.get("PUDDING_JDBC_URL"));
                     if(!url.startsWith("jdbc:postgresql:"))throw new IllegalArgumentException("JDBC URL");
                     var properties=new Properties();properties.setProperty("user",Objects.requireNonNull(env.get("PUDDING_DB_USER")));
@@ -39,6 +39,7 @@ public final class Main {
                     properties.setProperty("connectTimeout","5");properties.setProperty("socketTimeout","15");
                     PostgresStore.Connections connections=()->DriverManager.getConnection(url,properties);
                     if(args[0].equals("migrate-postgres")){PostgresStore.migrate(connections);report=Map.of("schema_version",1);}
+                    else if(args[0].equals("grant-runtime-postgres")){PostgresStore.grantRuntime(connections,env.get("PUDDING_RUNTIME_ROLE"));report=Map.of("runtime_grants",true);}
                     else {var store=new PostgresStore(connections,env.getOrDefault("PUDDING_SYNTHETIC_AGENT","synthetic-agent"),Clock.systemUTC(),null);
                         report=Map.of("fixture_only",true,"steps",demo(c->{try{return store.execute(c);}catch(SQLException e){throw new IllegalStateException("DB transaction failed");}}));}
                 }
