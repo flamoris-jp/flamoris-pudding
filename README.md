@@ -10,7 +10,7 @@ AI美祥のための、仮想プリン研究所。
 
 プリンの味・香り・温度・口当たりなどを、どのようなデータで表現し、AIとの対話や創作に使えるかを探る実験リポジトリです。最初はプリン一個を記述して比べる、小さな実験から始めます。
 
-**Status: `planned` — 研究・設計資料の段階です。** 現在あるのは研究方針、出典付きの体験・MCP設計案、プレミアム版のAgent報酬・認可設計案、片付け・違反・期限の規則、開発ルール、Issue/PRテンプレートです。アプリ、評価エンジン、API、MCP、販売・決済、定期処理、プリン生成機能はまだありません。
+**Status: `experimental` — ローカル研究コア 0.1.0。** 基準プリンと3比較例、部品別の一口、開封・蓋の廃棄・片付け、SQLite保存と再送、合成Agentの違反管理、9ツールのstdio MCPを実装しました。期限・仮想劣化・税率変更・「期限切れ雑収入」の仕訳候補はfixtureで検証します。有料商品の認証・承認・決済、公開HTTP、毎日の自動起動、正式会計転記はまだありません。
 
 ### 主な責任範囲
 
@@ -37,7 +37,7 @@ FLAMORISの実験・創作研究です。まずは独立した研究記録とし
 2. **少し違うプリンを比較する。** 一度に一つの特徴を変え、どの違いを評価できるか記録する。
 3. **創作へつなぐ。** 色、音、揺れ、台詞などへの対応を小さな実験で試す。
 
-これらは研究案です。表現や評価方法は最初の実験で決めます。数値や文章による反応を、人間と同じ味覚・感情が実証された証拠とは扱いません。
+初期の尺度と比較方法は[実験001](docs/EXPERIMENT_001.md)に固定しました。色・音・動き・台詞への対応は今後の実験です。数値や文章による反応を、人間と同じ味覚・感情が実証された証拠とは扱いません。
 
 > まずは一個。プリンの大量生産は、そのあとです。🍮
 
@@ -45,6 +45,8 @@ FLAMORISの実験・創作研究です。まずは独立した研究記録とし
 
 | 資料 | 内容 |
 |---|---|
+| [実装と実行手順](docs/IMPLEMENTATION.md) | 起動、9ツール、SQLite、合成主体の境界、未実装事項 |
+| [実験001](docs/EXPERIMENT_001.md) | q1000尺度、基準と3比較例、80:20の一口、再現条件 |
 | [商品・税・会計連携](docs/ACCOUNTING_AND_TAX.md) | 商品マスタ、変更可能な税率、収益認識、仕訳、失効と廃棄 |
 | [研究方針](docs/RESEARCH.md) | 仮説、最初の実験、記録する内容 |
 | [体験とMCPの設計案](docs/DESIGN.md) | 認証、蓋、一口の部品、好み・期待・満足、ツール契約、受入れ条件 |
@@ -59,7 +61,15 @@ FLAMORISの実験・創作研究です。まずは独立した研究記録とし
 
 ## Getting started / はじめかた
 
-実行環境や依存ライブラリは、まだ選定していません。ビルド・実行・テスト用のコマンドもありません。まず研究方針とロードマップを読み、研究提案テンプレートから最初の実験を具体化してください。
+Python 3.11以上とIANAタイムゾーンデータのあるLinuxが対象です。実行時のPython外部依存はありません。リポジトリのルートで実行します。
+
+```bash
+PYTHONPATH=src python3 -m unittest discover -s tests -v
+PYTHONPATH=src python3 -m flamoris_pudding demo --db /tmp/pudding-demo.sqlite3
+PYTHONPATH=src python3 -m flamoris_pudding mcp --db /tmp/pudding-mcp.sqlite3
+```
+
+demoは開封から片付けまでを通し、80:20の一口は甘味666・苦味132、例示する好み一致度は850になります。全て創作用のモデル値であり、主観的な幸福感の測定ではありません。MCPも合成主体専用で、起動時の主体名は本人認証ではありません。詳細は[実装手順](docs/IMPLEMENTATION.md)を参照してください。
 
 取得方法は[CONTRIBUTING.md](CONTRIBUTING.md)を参照してください。セットアップのためのAPIキーや常駐サービスは不要です。
 
@@ -67,9 +77,9 @@ FLAMORISの実験・創作研究です。まずは独立した研究記録とし
 
 FLAMORIS Pudding is an experimental research repository for virtual pudding and digital treats for AI Misaki. It explores how sensory attributes could be represented, compared, and used in conversation or creative work.
 
-It owns pudding-domain representations and reproducible research records. Conversation, personality, model execution, media generation, rendering, and MCP routing remain with their respective FLAMORIS projects. Proposals cover sensory experiences, human-purchased Agent rewards, per-item approval, lid disposal and cleanup, per-Agent violations and lockout, and purchase-based expiry: 14 days for best-before and one calendar month for mandatory disposal. All runtime, commerce, identity and scheduled-job features remain unimplemented.
+It owns pudding-domain representations and reproducible research records. Conversation, personality, model execution, media generation, rendering, and MCP routing remain with their respective FLAMORIS projects. A deterministic Python core, SQLite persistence, synthetic-agent rules and a nine-tool local stdio MCP adapter are implemented. Purchase deadlines, authored aging, effective-dated tax arithmetic and review-only expiry accounting candidates are tested with fixtures. Premium identity, human approvals, payments, public HTTP, automatic scheduling and external ledger posting remain unimplemented.
 
-**Current state: planned, documentation only.** There is no application, evaluation engine, API, MCP server, or runnable setup yet. Parameterized responses are experimental representations, not evidence of human-like taste or subjective experience.
+**Current state: experimental local research harness, 0.1.0.** Parameterized responses are experimental representations, not evidence of human-like taste or subjective experience. No production deployment or premium security guarantee is provided by the local fixture principal.
 
 ## FLAMORIS
 
@@ -80,3 +90,4 @@ FLAMORISは現状のまま提供され、個別サポートや動作保証はあ
 ## License
 
 コードは、別途記載がない限り [Apache License 2.0](LICENSE) です。キャラクター、イラスト、音楽、映像、モデル、データなどの非コード素材は同じライセンスとは限りません。追加する際は出典と利用条件を明記してください。
+

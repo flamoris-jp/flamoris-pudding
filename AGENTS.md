@@ -71,9 +71,10 @@ Use the repository documentation, Issues, tests, logs, and source code as primar
 ## FLAMORIS Pudding: research-specific rules
 
 - This repository owns virtual pudding representations, comparison methods, and research records. Read docs/RESEARCH.md, docs/ROADMAP.md, and PROGRESS.md before extending the scope.
-- Current status is planned/documentation only. Do not invent a CLI, API, MCP tool, service, test command, data schema, or deployment target.
+- Current status is an experimental local Python research core with SQLite and a narrow stdio MCP adapter. Read docs/IMPLEMENTATION.md and the actual source/tests. Premium authentication, payments, public HTTP, scheduling and external ledger posting remain unimplemented; do not invent their commands or deployment targets.
 - Treat the proposed attributes and experiments as proposals until their definitions and acceptance criteria are agreed in an Issue or PR.
 - Keep observations, model outputs, interpretations, and character dialogue distinguishable. A generated reaction is not evidence of subjective taste or emotion.
 - Use Misaki (海上 美祥 / Misaki Kaisho) and Akino (愛乃) for character names. Do not assume character artwork is licensed with the code.
 - Conversation/personality/memory, inference execution, media generation, rendering, and MCP routing remain owned by their respective FLAMORIS projects. Add integrations only for a concrete experiment, with explicit state ownership.
 - Update PROGRESS.md when implementation or acceptance changes. Add real setup/run/verification instructions alongside the first implementation.
+
