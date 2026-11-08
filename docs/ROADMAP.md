@@ -64,6 +64,7 @@
 
 - [x] JavaドメインコアとPostgreSQL JDBC保存アダプターを追加し、Pythonの固定結果を照合する。
 - [x] Java版のHTTP/MCP、Docker、Updaterカタログ候補を統合し、隔離CIで検証する。
+- [x] mainの成功CIから同じイメージを配布する検証・タグ公開工程を実装する。
 - [ ] Release/カタログを公開し、実環境のUpdaterと実クライアントで受け入れる。
 
 - [ ] 実験結果をもとに、連携先と具体的な用途を選ぶ。

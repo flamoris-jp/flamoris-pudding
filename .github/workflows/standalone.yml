@@ -53,6 +53,8 @@ jobs:
         run: |
           docker save --output /tmp/pudding-image.tar pudding-ci:0.3.0
           python3 scripts/build_pudding_release.py --image-tar /tmp/pudding-image.tar --release 0.3.0 --revision ${{ github.sha }} --platform linux/amd64 --base-url https://github.com/flamoris-jp/flamoris-pudding/releases/download/v0.3.0 --output candidate
+      - name: Verify release promotion against the actual candidate
+        run: python3 scripts/prepare_pudding_release.py prepare --candidate candidate --output verified-release --source-sha "$GITHUB_SHA" --release 0.3.0
       - uses: actions/upload-artifact@v4
         with:
           name: pudding-standalone-candidate-${{ github.sha }}

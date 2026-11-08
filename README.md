@@ -19,7 +19,8 @@ Hubを経由せず、HTTPS入口からPuddingのMCPへ直接接続します。�
 - 9ツールのStreamable HTTP（JSON応答）、通信セッションの制限、Host/Origin・入力検証。
 - 非root・read-onlyのDocker、HTTPS入口例、DBの版・runtime権限を確認するready。
 - Updaterの汎用Docker recipeで実イメージを導入・更新する経路。カタログは実物のconfig digest・SHA-256・版・ソースSHAから生成。
-- ローカルでJavaコア16・HTTP/MCP10・設定3シナリオとPython60テスト。隔離CIでは実PostgreSQL、Docker/Updaterの導入・更新、合成TLS越しのMCP、DB/資格情報/再送保持を確認します。最新の結果は[PR #8](https://github.com/flamoris-jp/flamoris-pudding/pull/8)のChecksを参照してください。
+- ローカルでJavaコア16・HTTP/MCP10・設定3シナリオとPython66テスト。隔離CIでは実PostgreSQL、Docker/Updaterの導入・更新、合成TLS越しのMCP、DB/資格情報/再送保持を確認します。サービス実装は[PR #8](https://github.com/flamoris-jp/flamoris-pudding/pull/8)のChecksを参照してください。
+- mainの成功CIから同じイメージを取得し、検証・アップロード後の取得/ハッシュ照合を経てdevelopment prereleaseへ公開する工程。[配布手順](docs/RELEASING.md)を参照。
 
 実行・資格情報・DB初期化・配布候補の作成は[単独サービス手順](docs/STANDALONE_SERVICE.md)。実装を追加したことはReleaseの公開や実環境への配備ではありません。候補のカタログURLを、未公開のままUpdaterへ登録しないでください。
 
@@ -93,6 +94,7 @@ FLAMORISの実験・創作研究です。まずは独立した研究記録とし
 | 資料 | 内容 |
 |---|---|
 | [単独HTTP/MCP・Docker・Updater](docs/STANDALONE_SERVICE.md) | 独立接続、Agent別資格情報、DB権限、配布候補、導入と検証 |
+| [検証済みイメージの配布](docs/RELEASING.md) | 成功したmain CIの候補、版とソース照合、タグによるprerelease公開 |
 | [Java移植・PostgreSQL](docs/JAVA_MIGRATION.md) | Javaコア、DB初期化、Python照合、JDBC実DB検証と未実装範囲 |
 | [実装と実行手順](docs/IMPLEMENTATION.md) | 起動、9ツール、SQLite、合成主体の境界、未実装事項 |
 | [実験001](docs/EXPERIMENT_001.md) | q1000尺度、基準と3比較例、80:20の一口、再現条件 |
