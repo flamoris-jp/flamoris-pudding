@@ -1,6 +1,11 @@
 name: Verified development release
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the verified main candidate as a development prerelease
+        type: boolean
+        default: false
   pull_request:
   push:
     tags: ['v*']
@@ -53,7 +58,9 @@ jobs:
           retention-days: 7
   publish:
     needs: verify
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: >-
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish)
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -62,6 +69,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       RELEASE: ${{ needs.verify.outputs.release }}
+      RELEASE_TAG: v${{ needs.verify.outputs.release }}
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -69,16 +77,21 @@ jobs:
           path: verified-release
       - name: Create draft and upload verified assets
         run: |
-          test "$GITHUB_REF_NAME" = "v$RELEASE"
-          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_REF_NAME" --jq .sha)" = "$GITHUB_SHA"
-          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --draft --prerelease --latest=false --title "FLAMORIS Pudding $RELEASE (development)" --notes-file verified-release/release-notes.md verified-release/catalog.json verified-release/candidate.json verified-release/linux-amd64--image.tar verified-release/SHA256SUMS
+          if [[ "$GITHUB_EVENT_NAME" == workflow_dispatch ]]; then
+            test "$GITHUB_REF" = refs/heads/main
+            gh api --method POST "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$RELEASE_TAG" -f sha="$GITHUB_SHA"
+          else
+            test "$GITHUB_REF_NAME" = "$RELEASE_TAG"
+          fi
+          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$RELEASE_TAG" --jq .sha)" = "$GITHUB_SHA"
+          gh release create "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --draft --prerelease --latest=false --title "FLAMORIS Pudding $RELEASE (development)" --notes-file verified-release/release-notes.md verified-release/catalog.json verified-release/candidate.json verified-release/linux-amd64--image.tar verified-release/SHA256SUMS
       - name: Download uploaded bytes and verify before publication
         run: |
-          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --dir downloaded --pattern catalog.json --pattern candidate.json --pattern linux-amd64--image.tar --pattern SHA256SUMS
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir downloaded --pattern catalog.json --pattern candidate.json --pattern linux-amd64--image.tar --pattern SHA256SUMS
           cmp verified-release/SHA256SUMS downloaded/SHA256SUMS
           cd downloaded
           sha256sum --strict --check SHA256SUMS
       - name: Publish the verified development prerelease
         run: |
-          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_REF_NAME" --jq .sha)" = "$GITHUB_SHA"
-          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
+          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$RELEASE_TAG" --jq .sha)" = "$GITHUB_SHA"
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false
