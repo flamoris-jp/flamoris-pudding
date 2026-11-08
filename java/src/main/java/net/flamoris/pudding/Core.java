@@ -77,7 +77,7 @@ public final class Core {
                     throw new Denied("UNRESOLVED_SESSION");
                 }
                 var state=new State(UUID.randomUUID(),Sensory.preset(c.presetId),0,0,Lid.ATTACHED,Stage.SEALED,Serving.ACTIVE,
-                    new Portion(90000,90000,0,0,0),new Portion(10000,10000,0,0,0),0,null,fixtureDeadlines,null,null,null);
+                    new Portion(Sensory.bodyMass(Sensory.preset(c.presetId)),Sensory.bodyMass(Sensory.preset(c.presetId)),0,0,0),new Portion(Sensory.sauceMass(Sensory.preset(c.presetId)),Sensory.sauceMass(Sensory.preset(c.presetId)),0,0,0),0,null,fixtureDeadlines,null,null,null);
                 return new Transition(state,policy,new Response(true,null,state,policy,false));
             }
             require(current!=null&&current.id.equals(c.session),"NOT_FOUND");
@@ -131,6 +131,9 @@ public final class Core {
     public static State expire(State state,Instant now) {
         if(state==null||state.deadlines==null||state.remaining()==0||!Lifecycle.age(state.deadlines,now).status().equals("disposal_due"))return state;
         var d=new Draft(state);d.discard(now);d.disposalEffective=state.deadlines.disposeAfter();d.disposalProcessed=now;d.revision=Math.incrementExact(d.revision);return d.freeze();
+    }
+    public static State rest(State state) {
+        var d=new Draft(state);d.revision=Math.incrementExact(d.revision);return d.freeze();
     }
     private static final class Draft {
         UUID id;Sensory.Preset preset;int revision,peel,bites;Lid lid;Stage stage;Serving serving;Portion body,sauce;

@@ -301,5 +301,237 @@
       "idempotentHint": false,
       "openWorldHint": false
     }
+  },
+  {
+    "name": "pudding.inventory.list",
+    "description": "Read only servings assigned to this authenticated Agent.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "pudding.rewards.request",
+    "description": "Ask the human to approve one assigned sandbox serving.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "maxLength": 36,
+          "format": "uuid"
+        },
+        "asset_id": {
+          "type": "string",
+          "maxLength": 36,
+          "format": "uuid"
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "request_id",
+        "asset_id",
+        "expected_revision"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "pudding.rewards.status",
+    "description": "Read the approval status of one assigned serving.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "asset_id": {
+          "type": "string",
+          "maxLength": 36,
+          "format": "uuid"
+        }
+      },
+      "required": [
+        "asset_id"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": true,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "pudding.premium.begin",
+    "description": "Begin or resume the same approved sandbox serving.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "maxLength": 36,
+          "format": "uuid"
+        },
+        "asset_id": {
+          "type": "string",
+          "maxLength": 36,
+          "format": "uuid"
+        },
+        "grant_id": {
+          "type": "string",
+          "maxLength": 36,
+          "format": "uuid"
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "request_id",
+        "asset_id",
+        "grant_id",
+        "expected_revision"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "pudding.premium.pause",
+    "description": "Pause without discarding the serving, lid, or spoon.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "maxLength": 36,
+          "format": "uuid"
+        },
+        "asset_id": {
+          "type": "string",
+          "maxLength": 36,
+          "format": "uuid"
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "request_id",
+        "asset_id",
+        "expected_revision"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "pudding.inventory.discard",
+    "description": "Discard an expired assigned serving; fresh servings need human approval.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "maxLength": 36,
+          "format": "uuid"
+        },
+        "asset_id": {
+          "type": "string",
+          "maxLength": 36,
+          "format": "uuid"
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "request_id",
+        "asset_id",
+        "expected_revision"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": true,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
+  },
+  {
+    "name": "pudding.sessions.rest",
+    "description": "Advance only authored afterglow time without waiting or changing purchase deadlines.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "request_id": {
+          "type": "string",
+          "maxLength": 36,
+          "format": "uuid"
+        },
+        "session_id": {
+          "type": "string",
+          "maxLength": 36,
+          "format": "uuid"
+        },
+        "expected_revision": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 2147483647
+        },
+        "rest_ms": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000
+        }
+      },
+      "required": [
+        "request_id",
+        "session_id",
+        "expected_revision",
+        "rest_ms"
+      ],
+      "additionalProperties": false
+    },
+    "annotations": {
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    }
   }
 ]

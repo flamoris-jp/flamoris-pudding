@@ -15,9 +15,9 @@ public final class DomainJson {
         return a==null?Map.of("status","not_applicable"):Map.of("status",a.status(),"quality_q",a.qualityQ(),"rotten_egg_like_q",a.rottenEggLikeQ(),"model_version","aging-authored-v0","basis","authored");
     }
     public static Map<String,Object> preset(Sensory.Preset p) {
-        var out=new LinkedHashMap<String,Object>();out.put("id",p.id());out.put("basis","authored");out.put("model_version","custard-authored-v0");out.put("source_ids",List.of("S01"));
+        var out=new LinkedHashMap<String,Object>();out.put("id",p.id());out.put("basis","authored");out.put("model_version",p.id().startsWith("custard-")?"custard-authored-v0":"pudding-variants-authored-v1");out.put("source_ids",p.id().startsWith("custard-")?List.of("S01"):List.of());
         out.put("temperature_c",8);out.put("sugar_g_per_100g",null);out.put("brix_percent",null);
-        out.put("components",Map.of("body",Map.of("mass_mg",90000,"features",p.body()),"sauce",Map.of("mass_mg",10000,"features",p.sauce())));return out;
+        out.put("components",Map.of("body",Map.of("mass_mg",Sensory.bodyMass(p),"features",p.body()),"sauce",Map.of("mass_mg",Sensory.sauceMass(p),"features",p.sauce())));return out;
     }
     public static Map<String,Object> state(Core.State s,java.time.Instant now) {
         var out=new LinkedHashMap<String,Object>();

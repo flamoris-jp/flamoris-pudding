@@ -91,6 +91,7 @@ def main():
     print(f"Parity: {len(data['sensory'])} sensory, {len(data['lifecycle'])} lifecycle, {len(rows)} state responses, candidate ID")
     if args.postgres:
         subprocess.run(['java', '-cp', cp, 'net.flamoris.pudding.PostgresTest'], check=True)
+        subprocess.run(['java', '-cp', cp, 'net.flamoris.pudding.CommerceTest'], check=True)
 
 
 if __name__ == '__main__':

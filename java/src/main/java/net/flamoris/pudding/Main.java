@@ -43,7 +43,7 @@ public final class Main {
                     else {var store=new PostgresStore(connections,env.getOrDefault("PUDDING_SYNTHETIC_AGENT","synthetic-agent"),Clock.systemUTC(),null);
                         report=Map.of("fixture_only",true,"steps",demo(c->{try{return store.execute(c);}catch(SQLException e){throw new IllegalStateException("DB transaction failed");}}));}
                 }
-                default -> throw new IllegalArgumentException("command");
+                default -> report=SandboxMain.run(args[0],System.getenv());
             }
             System.out.write((Json.write(report)+"\n").getBytes(StandardCharsets.UTF_8));
         }catch(Exception e){System.err.println("Pudding research command failed. Check command, database configuration and serving state.");System.exit(1);}

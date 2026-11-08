@@ -58,13 +58,13 @@ public final class PostgresStore {
     private int config(Connection c)throws SQLException {
         try(var s=c.prepareStatement("SELECT schema_version,rules_version,threshold FROM pudding_config WHERE singleton")){
             try(var r=s.executeQuery()){
-                if(!r.next()||r.getInt(1)!=1||!RULES.equals(r.getString(2)))throw new SQLException("unsupported pudding schema/rules");
+                if(!r.next()||(r.getInt(1)!=1&&r.getInt(1)!=2)||!RULES.equals(r.getString(2)))throw new SQLException("unsupported pudding schema/rules");
                 int threshold=r.getInt(3);if(threshold<1||threshold>100)throw new SQLException("invalid policy");return threshold;
             }
         }
     }
     private static void limits(Connection c)throws SQLException {try(var s=c.createStatement()){s.execute("SET LOCAL lock_timeout='5s'");s.execute("SET LOCAL statement_timeout='10s'");s.execute("SET LOCAL transaction_timeout='12s'");}}
-    private Policy lockActor(Connection c)throws SQLException {
+    Policy lockActor(Connection c)throws SQLException {
         int threshold=config(c);
         try(var s=c.prepareStatement("INSERT INTO pudding_agents(id,policy) VALUES(?,?) ON CONFLICT DO NOTHING")){
             s.setString(1,actor);s.setBytes(2,Codec.policy(new Policy(threshold,Set.of())));s.executeUpdate();
@@ -76,26 +76,48 @@ public final class PostgresStore {
             }
         }
     }
-    private State load(Connection c,UUID id,boolean unresolved)throws SQLException {
+    State load(Connection c,UUID id,boolean unresolved)throws SQLException {
         String sql=unresolved?"SELECT state FROM pudding_sessions WHERE agent_id=? AND NOT closed":"SELECT state FROM pudding_sessions WHERE agent_id=? AND id=?";
         try(var s=c.prepareStatement(sql)){s.setString(1,actor);if(!unresolved)s.setObject(2,id);try(var r=s.executeQuery()){return r.next()?Codec.state(r.getBytes(1)):null;}}
     }
     public Response execute(Command command)throws SQLException {
+        try(var c=connections.open()) {
+            c.setAutoCommit(false);
+            try {var result=executeInTransaction(c,command,false);c.commit();return result;}
+            catch(SQLException|RuntimeException e){c.rollback();throw e;}
+        }
+    }
+    static int schemaVersion(Connection c)throws SQLException {
+        try(var s=c.createStatement();var r=s.executeQuery("SELECT schema_version FROM pudding_config WHERE singleton")){
+            if(!r.next())throw new SQLException("missing schema");return r.getInt(1);
+        }
+    }
+    Response executeInTransaction(Connection c,Command command,boolean premiumAuthorized)throws SQLException {
         Objects.requireNonNull(command);byte[] payload=Codec.command(command);
-        try(var c=connections.open()){
-            c.setAutoCommit(false);c.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
-            try {
                 limits(c);Policy policy=lockActor(c);
                 try(var s=c.prepareStatement("SELECT command,response FROM pudding_requests WHERE agent_id=? AND request_id=?")){
                     s.setString(1,actor);s.setObject(2,command.request());try(var r=s.executeQuery()){
                         if(r.next()){
                             var response=Arrays.equals(payload,r.getBytes(1))?Codec.response(r.getBytes(2)):new Response(false,"REQUEST_ID_REUSED",null,policy,false);
-                            c.commit();return response;
+                            return response;
                         }
+                    }
+                }
+                if(!premiumAuthorized&&command.session()!=null&&schemaVersion(c)==2) {
+                    try(var s=c.prepareStatement("SELECT 1 FROM pudding_assets WHERE session_id=?")) {
+                        s.setObject(1,command.session());try(var r=s.executeQuery()){if(r.next())return new Response(false,"PREMIUM_ROUTE_REQUIRED",null,policy,false);}
                     }
                 }
                 Instant now=clock.instant();State old=load(c,command.session(),command.op()==Op.CREATE);
                 var transition=Core.apply(old,policy,command,now,fixture);
+                if(schemaVersion(c)==2&&transition.response().policyChanged()) {
+                    var active=new HashSet<>(transition.policy().obligations());
+                    try(var s=c.prepareStatement("SELECT obligation_id FROM pudding_policy_reviews WHERE agent_id=?")) {
+                        s.setString(1,actor);try(var r=s.executeQuery()){while(r.next())active.remove(r.getString(1));}
+                    }
+                    var corrected=new Policy(transition.policy().threshold(),active);var response=transition.response();
+                    transition=new Transition(transition.state(),corrected,new Response(response.ok(),response.error(),response.session(),corrected,!corrected.equals(policy)));
+                }
                 if(transition.response().ok())save(c,transition.state());
                 if(!transition.policy().equals(policy)) {
                     try(var s=c.prepareStatement("UPDATE pudding_agents SET policy=? WHERE id=?")){
@@ -106,17 +128,15 @@ public final class PostgresStore {
                 try(var s=c.prepareStatement("INSERT INTO pudding_requests VALUES(?,?,?,?)")){
                     s.setString(1,actor);s.setObject(2,command.request());s.setBytes(3,payload);s.setBytes(4,response);s.executeUpdate();
                 }
-                event(c,command.request().toString(),now,response);c.commit();return transition.response();
-            }catch(SQLException|RuntimeException e){c.rollback();throw e;}
-        }
+                event(c,command.request().toString(),now,response);return transition.response();
     }
-    private void save(Connection c,State state)throws SQLException {
+    void save(Connection c,State state)throws SQLException {
         try(var s=c.prepareStatement("INSERT INTO pudding_sessions VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET revision=EXCLUDED.revision,closed=EXCLUDED.closed,state=EXCLUDED.state WHERE pudding_sessions.agent_id=EXCLUDED.agent_id")){
             s.setObject(1,state.id());s.setString(2,actor);s.setInt(3,state.revision());s.setBoolean(4,state.serving()==Serving.CLOSED);s.setBytes(5,Codec.state(state));
             if(s.executeUpdate()!=1)throw new SQLException("session ownership conflict");
         }
     }
-    private void event(Connection c,String key,Instant now,byte[] response)throws SQLException {
+    void event(Connection c,String key,Instant now,byte[] response)throws SQLException {
         try(var s=c.prepareStatement("INSERT INTO pudding_events(agent_id,event_key,occurred_at,response) VALUES(?,?,?,?)")){
             s.setString(1,actor);s.setString(2,key);s.setObject(3,now.atOffset(ZoneOffset.UTC));s.setBytes(4,response);s.executeUpdate();
         }

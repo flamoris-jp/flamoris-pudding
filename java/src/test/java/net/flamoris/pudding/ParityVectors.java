@@ -27,6 +27,8 @@ public final class ParityVectors {
         for(String id:List.of("custard-v0","custard-sweeter-v0","custard-firmer-v0","custard-bitterer-v0"))
             for(int b:new int[]{0,1,100,500,8000,90000})for(int s:new int[]{0,1,7,2000,10000})for(boolean interaction:new boolean[]{false,true})
                 if(b+s>0)vectors.add(Map.of("id",id,"body",b,"sauce",s,"interaction",interaction,"features",Sensory.bite(Sensory.preset(id),b,s,interaction)));
+        for(String id:List.of("milk-v1","chocolate-v1"))for(int body:new int[]{1,8000,100000})
+            vectors.add(Map.of("id",id,"body",body,"sauce",0,"interaction",true,"features",Sensory.bite(Sensory.preset(id),body,0,true)));
         var dates=new ArrayList<Object>();
         for(String purchase:List.of("2026-11-08T01:00:00Z","2027-01-31T01:00:00Z","2028-01-31T01:00:00Z","2026-12-31T01:00:00Z","2026-01-30T18:00:00Z")){
             var d=Lifecycle.deadlines(Instant.parse(purchase));

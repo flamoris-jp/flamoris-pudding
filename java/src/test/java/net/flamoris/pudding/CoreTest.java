@@ -34,6 +34,22 @@ public final class CoreTest {
         test("snapshot round trip and corrupt rejection",()->{var m=new MemoryStore(Clock.fixed(NOW,ZoneOffset.UTC),3,NOW);var s=open(m);s=m.execute(action(Op.SCOOP,s,0,8000,2000)).session();var r=m.execute(action(Op.TASTE,s,0,0,0));equal(Codec.response(Codec.response(r)),r);equal(Codec.state(Codec.state(r.session())),r.session());rejects(()->Codec.state(new byte[]{1}));var b=Codec.response(r);b[3]=99;rejects(()->Codec.response(b));});
         test("expiry candidate residual and stable identity",()->{var a=Accounting.expiry("asset","purchase",1100,200,100,NOW,NOW.plusSeconds(1),true,"v0");equal(a.amountMinor(),800L);equal(a.lines().getLast().account(),"期限切れ雑収入");check(!a.externalPosting());equal(a.id(),Accounting.expiry("asset","purchase",1100,200,100,NOW,NOW.plusSeconds(2),true,"v1").id());equal(Accounting.expiry("asset","purchase",1100,1100,0,NOW,NOW,true,"v0"),null);equal(Accounting.expiry("asset","purchase",1100,0,0,NOW,NOW,false,"v0"),null);rejects(()->Accounting.expiry("asset","purchase",1100,1100,1,NOW,NOW,true,"v0"));});
         test("tax schedule and group rounding",()->{var a=new Accounting.TaxRate("rate","v0","fixture","JP",1,10,NOW,NOW.plusSeconds(1));var b=new Accounting.TaxRate("rate","v1","fixture","JP",12,100,NOW.plusSeconds(1),null);equal(Accounting.select(List.of(a,b),"fixture","JP",NOW.plusSeconds(1)),b);equal(Accounting.groupedInclusiveTax(List.of(10L,10L),a),BigInteger.ONE);equal(Accounting.groupedInclusiveTax(List.of(1100L),b),BigInteger.valueOf(117));rejects(()->Accounting.select(List.of(a,a),"fixture","JP",NOW));rejects(()->Accounting.select(List.of(a),"fixture","JP",NOW.minusSeconds(1)));});
+        test("milk and chocolate have no sauce and cocoa bitterness stays in body",()->{
+            var milk=Sensory.preset("milk-v1");equal(Sensory.bodyMass(milk),100000);equal(Sensory.sauceMass(milk),0);
+            rejects(()->Sensory.bite(milk,1,1,true));equal(Sensory.bite(Sensory.preset("chocolate-v1"),100000,0,true).get("bitterness_q"),350);
+            var m=new MemoryStore(Clock.fixed(NOW,ZoneOffset.UTC),3,null);var state=m.execute(Command.create(UUID.randomUUID(),"milk-v1")).session();equal(state.body().initial(),100000);equal(state.sauce().initial(),0);
+        });
+        test("authored anticipation and mass-weighted satisfaction preserve unknown coverage",()->{
+            var m=new MemoryStore(Clock.fixed(NOW,ZoneOffset.UTC),3,null);var old=m.execute(Command.create(UUID.randomUUID(),null)).session();
+            var track=Experience.initial();equal(Experience.view(track,old).get("satisfaction_q"),null);
+            var next=m.execute(action(Op.PEEL,old,250,0,0)).session();equal(Experience.view(track,next).get("anticipation_q"),450);
+            next=m.execute(action(Op.PEEL,next,750,0,0)).session();next=m.execute(action(Op.LID_DISPOSE,next,0,0,0)).session();
+            next=m.execute(action(Op.SCOOP,next,0,8000,2000)).session();old=next;next=m.execute(action(Op.TASTE,next,0,0,0)).session();
+            track=Experience.advance(track,old,next);var view=Experience.view(track,next);check(view.get("satisfaction_q")!=null);
+            equal(Experience.view(Experience.rest(track,60000),next).get("afterglow_q"),0);
+            var unknown=new TreeMap<String,Object>(track);unknown.put("targets",Map.of("saltiness_q",100));unknown.put("weights",Map.of("saltiness_q",1));unknown.put("total_mg",0);unknown.put("evaluated_mg",0);unknown.put("weighted_liking",0);
+            equal(Experience.view(Experience.advance(unknown,old,next),next).get("satisfaction_q"),null);
+        });
         System.out.println("Java core scenarios: "+scenarios);
     }
 }
