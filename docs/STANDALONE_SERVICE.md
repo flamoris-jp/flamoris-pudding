@@ -78,7 +78,7 @@ docker save --output /tmp/pudding-image.tar pudding:0.3.0
 python3 scripts/build_pudding_release.py --image-tar /tmp/pudding-image.tar --release 0.3.0 --revision FULL_COMMIT_SHA --platform linux/amd64 --base-url https://github.com/flamoris-jp/flamoris-pudding/releases/download/v0.3.0 --output candidate
 ```
 
-生成物はcandidateで、GitHub Releaseの公開やUpdaterへの登録は行わない。Dockerのruntime IDとarchive内config digestが異なる場合も、config digestをarchiveから導出する。公開する際は自リポジトリの選択したReleaseへ生成物を置き、実URLとハッシュを確認してから登録する。Actions artifactはレビュー用でありUpdaterの配布元ではない。
+生成物はcandidateで、この生成コマンドはGitHub Releaseの公開やUpdaterへの登録を行わない。Dockerのruntime IDとarchive内config digestが異なる場合も、config digestをarchiveから導出する。公開には[配布手順](RELEASING.md)のworkflowを使い、成功したmain CIの同じイメージを検証・アップロード後の取得/ハッシュ照合を経てprereleaseへ公開する。Actions artifactはレビュー用でありUpdaterの配布元ではない。実URLとハッシュを確認してから登録する。
 
 初回入力はポート、既存専用DBのJDBC URL/runtimeロール/パスワード、公開Host/Origin、Agent ID。Agent専用tokenは空欄ならUpdaterが生成する。Updater自身の認証値や人間のログインパスワードとは別。追加Agentの設定は管理者が保護された設定へ反映する。
 

@@ -1,0 +1,84 @@
+name: Verified development release
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: pudding-release-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  verify:
+    if: >-
+      github.repository == 'flamoris-jp/flamoris-pudding' &&
+      (github.event_name == 'push' || github.ref == 'refs/heads/main' ||
+       (github.event_name == 'pull_request' && github.base_ref == 'main'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SOURCE_SHA: ${{ github.event.pull_request.base.sha || github.sha }}
+    outputs:
+      release: ${{ steps.source.outputs.release }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Resolve the candidate from successful main CI
+        id: source
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --method GET "repos/$GITHUB_REPOSITORY/actions/runs" -f head_sha="$SOURCE_SHA" -f event=push -f per_page=100 > /tmp/pudding-runs.json
+          gh api --method GET "repos/$GITHUB_REPOSITORY/contents/java/src/main/resources/pudding-version.txt" -f ref="$SOURCE_SHA" --jq .content | base64 --decode > /tmp/pudding-version.txt
+          options=()
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then options=(--tag "$GITHUB_REF_NAME"); fi
+          python3 scripts/prepare_pudding_release.py select --runs-json /tmp/pudding-runs.json --source-sha "$SOURCE_SHA" --version-file /tmp/pudding-version.txt --github-output "$GITHUB_OUTPUT" "${options[@]}"
+      - name: Download the exact main candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_RUN: ${{ steps.source.outputs.run_id }}
+        run: gh run download "$SOURCE_RUN" --repo "$GITHUB_REPOSITORY" --name "pudding-standalone-candidate-$SOURCE_SHA" --dir candidate
+      - name: Verify image, catalog and source identity
+        env:
+          RELEASE: ${{ steps.source.outputs.release }}
+        run: python3 scripts/prepare_pudding_release.py prepare --candidate candidate --output verified-release --source-sha "$SOURCE_SHA" --release "$RELEASE"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pudding-verified-release-${{ github.sha }}
+          path: verified-release/
+          retention-days: 7
+  publish:
+    needs: verify
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE: ${{ needs.verify.outputs.release }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: pudding-verified-release-${{ github.sha }}
+          path: verified-release
+      - name: Create draft and upload verified assets
+        run: |
+          test "$GITHUB_REF_NAME" = "v$RELEASE"
+          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_REF_NAME" --jq .sha)" = "$GITHUB_SHA"
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --verify-tag --draft --prerelease --latest=false --title "FLAMORIS Pudding $RELEASE (development)" --notes-file verified-release/release-notes.md verified-release/catalog.json verified-release/candidate.json verified-release/linux-amd64--image.tar verified-release/SHA256SUMS
+      - name: Download uploaded bytes and verify before publication
+        run: |
+          gh release download "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --dir downloaded --pattern catalog.json --pattern candidate.json --pattern linux-amd64--image.tar --pattern SHA256SUMS
+          cmp verified-release/SHA256SUMS downloaded/SHA256SUMS
+          cd downloaded
+          sha256sum --strict --check SHA256SUMS
+      - name: Publish the verified development prerelease
+        run: |
+          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$GITHUB_REF_NAME" --jq .sha)" = "$GITHUB_SHA"
+          gh release edit "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease --latest=false

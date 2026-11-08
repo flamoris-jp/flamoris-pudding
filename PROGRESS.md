@@ -1,5 +1,13 @@
 # Progress 🍮
 
+## 2026-11-08 — 検証済み候補からの配布工程
+
+- PR #7・#8をmainへマージし、マージ後コミット `20795e4` の5チェック成功も確認した。
+- 同じソースSHAのmain pushのPython・Java/DB・単独サービスCIがすべて成功した場合に、その候補をそのまま配布する工程を追加。古い成功で新しい失敗を代用しない。
+- 実イメージID・カタログ・版・ソース・SHA-256を照合し、余分な設定ファイル・symlink・重複JSONを拒否する。Python66テストがローカルで成功。
+- PR/手動実行では実際のmain候補の取得と配布前検証を行う。タグpushではdraftへアップロードし、取得し直したバイト列の確認後にdevelopment prereleaseとして公開する。公開工程の実行結果と実機受入れは別に記録する。
+- このソース追加ではRelease/タグの作成、Updater登録、DB初期化、実機導入を行っていない。次は[配布手順](docs/RELEASING.md)のCIを受け入れ、実際の公開と導入設定へ進む。
+
 ## 2026-11-08 — 単独HTTP/MCP・Docker・Updaterの実装と隔離検証
 
 - PR #7のJavaコア/PostgreSQL保存をmainへマージ済み。単独サービスと配布候補は[PR #8](https://github.com/flamoris-jp/flamoris-pudding/pull/8)で追加。
