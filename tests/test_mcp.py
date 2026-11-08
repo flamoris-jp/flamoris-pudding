@@ -146,6 +146,16 @@ class McpTests(unittest.TestCase):
         self.assertEqual(len(lines), 1)
         self.assertEqual(json.loads(lines[0])["error"]["code"], -32600)
 
+    def test_lone_surrogates_are_rejected_and_connection_remains_usable(self):
+        cases = [request("\ud800", "ping"),
+                 request(1, "ping", {"_meta": {"\udfff": "value"}}),
+                 request(1, "ping", {"_meta": {"key": "\ud800"}})]
+        for invalid in cases:
+            output, store = transcript([invalid, request(2, "ping")])
+            self.assertEqual(output[0]["error"]["code"], -32700)
+            self.assertEqual(output[1], {"jsonrpc": "2.0", "id": 2, "result": {}})
+            self.assertFalse(store.calls)
+
 
 if __name__ == "__main__":
     unittest.main()

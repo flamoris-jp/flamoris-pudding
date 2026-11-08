@@ -106,6 +106,13 @@ def _bounded_shape(value) -> None:
             raise ValueError("JSON structure limit")
         if isinstance(item, float) and not math.isfinite(item):
             raise ValueError("nonfinite JSON number")
+        # JSON escapes can decode to lone surrogates even from valid UTF-8
+        # bytes. Reject them before echoing IDs through a UTF-8 writer.
+        if isinstance(item, str):
+            item.encode("utf-8")
+        if isinstance(item, dict):
+            for key in item:
+                key.encode("utf-8")
         children = item.values() if isinstance(item, dict) else item if isinstance(item, list) else ()
         pending.extend((child, depth + 1) for child in children)
 

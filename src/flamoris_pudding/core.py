@@ -75,6 +75,14 @@ class Store:
         self.fixture_deadlines = (deadlines(fixture_purchased_at)
                                   if fixture_purchased_at is not None else None)
         self.db = sqlite3.connect(path, isolation_level=None, timeout=5)
+        try:
+            self._initialize(lockout_threshold)
+        except BaseException:
+            self.db.close()
+            raise
+        self.threshold = lockout_threshold
+
+    def _initialize(self, lockout_threshold: int) -> None:
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA foreign_keys=ON")
         self.db.executescript("""
@@ -106,8 +114,7 @@ class Store:
             config = json.loads(self.db.execute("SELECT value FROM config WHERE key='rules'").fetchone()[0])
             if config != {"version": RULES_VERSION, "threshold": lockout_threshold}:
                 raise ValueError("database rules differ from process configuration")
-            self.db.execute("INSERT OR IGNORE INTO agents(id) VALUES(?)", (agent_id,))
-        self.threshold = lockout_threshold
+            self.db.execute("INSERT OR IGNORE INTO agents(id) VALUES(?)", (self.agent_id,))
 
     def close(self) -> None:
         self.db.close()
@@ -294,9 +301,8 @@ class Store:
         elif name in {"pudding.spoon.scoop", "pudding.spoon.taste"}:
             if state["peel_q"] != 1000:
                 raise Denied("LID_NOT_OPEN")
-            if state["lid"] == "detached":
-                self._violate("lid:" + state["id"], "LID_NOT_DISPOSED", now)
-                raise Denied("LID_NOT_DISPOSED")
+            # Only an otherwise executable food command can establish a rule
+            # violation. An empty spoon or impossible mass is a state error.
             if name == "pudding.spoon.scoop":
                 if any(c["spoon_mg"] for c in state["components"].values()):
                     raise Denied("SPOON_NOT_EMPTY")
@@ -304,15 +310,20 @@ class Store:
                 for key, amount in masses.items():
                     if amount > state["components"].get(key, {}).get("cup_mg", 0):
                         raise Denied("INSUFFICIENT_MASS")
+            else:
+                masses = {key: c["spoon_mg"] for key, c in state["components"].items()}
+                if not sum(masses.values()):
+                    raise Denied("EMPTY_SPOON")
+            if state["lid"] == "detached":
+                self._violate("lid:" + state["id"], "LID_NOT_DISPOSED", now)
+                raise Denied("LID_NOT_DISPOSED")
+            if name == "pudding.spoon.scoop":
                 for key, c in state["components"].items():
                     amount = masses.get(key, 0)
                     c["cup_mg"] -= amount
                     c["spoon_mg"] += amount
                 state["food_stage"] = "spoon_loaded"
             else:
-                masses = {key: c["spoon_mg"] for key, c in state["components"].items()}
-                if not sum(masses.values()):
-                    raise Denied("EMPTY_SPOON")
                 quality = age(state["deadlines"], now) if state["deadlines"] else None
                 if quality and quality["status"] == "expired_pending_disposal":
                     self._violate("expired:" + args["request_id"], "EXPIRED_USE", now)

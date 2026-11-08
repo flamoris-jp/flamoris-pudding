@@ -109,6 +109,46 @@ class CoreTests(unittest.TestCase):
         changed = {**request, "preset_id": "custard-sweeter-v0"}
         self.assertEqual(self.store.call("pudding.sessions.create", changed)["error"], "REQUEST_ID_REUSED")
 
+    def test_invalid_food_state_does_not_create_lid_violation(self):
+        self.create()
+        self.command("pudding.lid.peel", amount_q=1000)
+        before = self.snapshot()
+        self.assertEqual(self.command("pudding.spoon.taste")["error"], "EMPTY_SPOON")
+        self.assertEqual(self.scoop(90001, 0)["error"], "INSUFFICIENT_MASS")
+        self.assertEqual(self.snapshot(), before)
+        # A valid attempt still records the actual lid obligation once.
+        self.assertEqual(self.scoop()["policy"]["violations"], 1)
+
+    def test_violation_rolls_back_if_audit_write_fails(self):
+        self.create()
+        self.command("pudding.lid.peel", amount_q=1000)
+        args = {"request_id": str(uuid4()), "session_id": self.state["id"],
+                "expected_revision": self.state["revision"], "body_mg": 100, "sauce_mg": 0}
+        before = self.snapshot()
+        self.store.db.execute("CREATE TRIGGER fail_event BEFORE INSERT ON events BEGIN SELECT RAISE(ABORT,'fixture'); END")
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.store.call("pudding.spoon.scoop", args)
+        self.assertEqual(self.snapshot(), before)
+        self.assertEqual(self.store.db.execute("SELECT count(*) FROM violations").fetchone()[0], 0)
+        self.store.db.execute("DROP TRIGGER fail_event")
+        result = self.store.call("pudding.spoon.scoop", args)
+        self.assertEqual(result["policy"]["violations"], 1)
+        self.assertEqual(self.store.call("pudding.spoon.scoop", args), result)
+
+    def test_concurrent_same_request_creates_only_one_serving(self):
+        args = {"request_id": str(uuid4())}
+        def create(_):
+            store = self.new_store()
+            try:
+                return store.call("pudding.sessions.create", args)
+            finally:
+                store.close()
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            results = list(executor.map(create, range(2)))
+        self.assertTrue(results[0]["ok"])
+        self.assertEqual(results[0], results[1])
+        self.assertEqual(self.store.db.execute("SELECT count(*) FROM sessions").fetchone()[0], 1)
+
     def test_stale_revision_and_spoofed_identity_do_not_mutate(self):
         self.opened()
         old = copy.deepcopy(self.state)
