@@ -77,6 +77,7 @@ class Client:
         assert status == 200 and 'result' in data, (status, data)
         result = data['result']
         assert json.loads(result['content'][0]['text']) == result['structuredContent']
+        self.last_tool_content = result['content'][0]['text']
         return result['structuredContent']
 
 
@@ -101,6 +102,11 @@ def run(args):
     from flamoris_update_core.wire import dumps
     from flamoris_update_core.errors import UpdateError
 
+    if any(n.startswith('flamoris-pudding') for n in command(['/usr/bin/docker', 'ps', '-a', '--format', '{{.Names}}'], output=True).splitlines()):
+        raise ValueError('isolated test requires no existing Pudding containers')
+    target = psycopg.conninfo.conninfo_to_dict(os.environ['PUDDING_TEST_ADMIN_DSN'])
+    if target.get('host') != '127.0.0.1' or target.get('dbname') != 'pudding_test' or target.get('user') != 'pudding_test':
+        raise ValueError('isolated test requires the local disposable fixture database')
     gateway = command(['/usr/bin/docker', 'network', 'inspect', 'bridge', '--format', '{{(index .IPAM.Config 0).Gateway}}'], output=True)
     host_port, tls_port = port(), port()
     image_ids = {}
@@ -204,6 +210,7 @@ http {{ server {{ listen {tls_port} ssl; ssl_certificate /tls/cert.pem; ssl_cert
             import uuid
             request_id = str(uuid.uuid4())
             first = client.tool('pudding.sessions.create', {'request_id': request_id})
+            first_text = client.last_tool_content
             assert first['ok']
             session = first['session']
             def action(op, **extra):
@@ -229,6 +236,7 @@ http {{ server {{ listen {tls_port} ssl; ssl_certificate /tls/cert.pem; ssl_cert
             client = Client(f'https://127.0.0.1:{tls_port}/mcp', token, context)
             client.initialize('0.3.1')
             assert client.tool('pudding.sessions.create', {'request_id': request_id}) == first
+            assert client.last_tool_content == first_text
             read = client.tool('pudding.sessions.get', {'session_id': session['id']})['session']
             effective = read.pop('effective_age')
             assert effective['status'] == 'not_applicable' and read == snapshot

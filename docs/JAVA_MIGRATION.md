@@ -84,6 +84,6 @@ python3 scripts/verify_java.py --postgres
 
 CIは初期化、再起動再送、所有範囲、同じ要求の競合、revision競合、監査失敗時の違反ロールバック、ロック後の片付け、期限ガードと廃棄の冪等性、非対応スキーマの拒否を検証する。
 
-Java版にはまだMCP/HTTP入力・公開認証がない。Pythonのstdio MCPは独立した研究経路として残す。基盤導入時にJavaコアを同じアプリ内から呼び、Hubを経由しない単独MCPへ接続する。DockerとUpdaterカタログ/配布物、商品マスタ、有料承認、決済/返金、正式会計への転記は未実装。美祥の腐敗試食拒否を維持し、全ての劣化・違反試験は合成データで行う。
+現在は[単独サービス](STANDALONE_SERVICE.md)としてJavaコアを同じアプリ内から呼ぶHTTP/MCP、個別Agent資格情報、DockerとUpdaterカタログ候補を追加している。Pythonのstdio MCPは照合・研究用に残す。Release公開・実配置、商品マスタ、人間ログイン/有料承認、決済/返金、正式会計への転記は未実装。美祥の腐敗試食拒否を維持し、全ての劣化・違反試験は合成データで行う。
 
 参照：[PostgreSQLの行ロック](https://www.postgresql.org/docs/18/explicit-locking.html)、[INSERTと競合](https://www.postgresql.org/docs/18/sql-insert.html)、[pgJDBC配布](https://jdbc.postgresql.org/download/)。

@@ -14,6 +14,7 @@ LABEL org.opencontainers.image.title="flamoris-pudding" \
 WORKDIR /app
 COPY --from=build /build/target/classes ./classes
 COPY --from=build /build/target/dependency ./lib
+COPY LICENSE /app/LICENSE
 RUN printf '%s\n' "$APP_VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$' \
     && printf '%s\n' "$APP_VERSION" > /app/classes/pudding-version.txt
 USER 10001:10001

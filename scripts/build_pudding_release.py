@@ -19,7 +19,7 @@ def image_config(archive: Path, image_id: str | None):
     if image_id is not None and not re.fullmatch(r'sha256:[0-9a-f]{64}', image_id):
         raise ValueError('invalid image digest')
     manifest, configs = None, {}
-    with tarfile.open(archive, 'r|*') as stream:
+    with tarfile.open(archive, 'r:*') as stream:
         for count, member in enumerate(stream):
             if count >= 4096:
                 raise ValueError('archive member limit')
@@ -30,15 +30,15 @@ def image_config(archive: Path, image_id: str | None):
                     raise ValueError('duplicate manifest')
                 manifest = json.loads(stream.extractfile(member).read())
             elif re.fullmatch(r'(?:[0-9a-f]{64}\.json|blobs/sha256/[0-9a-f]{64})', member.name):
-                raw = stream.extractfile(member).read()
                 if member.name in configs:
                     raise ValueError('duplicate image config')
-                configs[member.name] = raw
-    if not isinstance(manifest, list) or len(manifest) != 1 or not isinstance(manifest[0], dict):
-        raise ValueError('one runnable Docker image required')
-    raw = configs.get(manifest[0].get('Config'))
-    if raw is None:
-        raise ValueError('image digest does not match selected image')
+                configs[member.name] = member
+        if not isinstance(manifest, list) or len(manifest) != 1 or not isinstance(manifest[0], dict):
+            raise ValueError('one runnable Docker image required')
+        selected = configs.get(manifest[0].get('Config'))
+        if selected is None:
+            raise ValueError('image digest does not match selected image')
+        raw = stream.extractfile(selected).read()
     actual = 'sha256:' + hashlib.sha256(raw).hexdigest()
     if image_id is not None and image_id != actual:
         raise ValueError('selected config digest mismatch')

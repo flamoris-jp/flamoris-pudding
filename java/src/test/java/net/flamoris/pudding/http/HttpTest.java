@@ -51,6 +51,7 @@ public final class HttpTest {
     private static int count;
     public static void main(String[] args)throws Exception {
         scenario("strict JSON and numeric types",()->{
+            equal(Json.write(Map.of("z",1,"a",2)),"{\"a\":2,\"z\":1}");
             equal(JsonInput.parse("123".getBytes(StandardCharsets.UTF_8)),BigInteger.valueOf(123));
             for(String s:List.of("{\"a\":null,\"a\":1}","[1,]","01","NaN","\"\\ud800\"","{\"\\udfff\":1}","{} trailing","[".repeat(40)+"]".repeat(40)))rejects(()->JsonInput.parse(s.getBytes(StandardCharsets.UTF_8)));
             rejects(()->JsonInput.parse(new byte[]{(byte)0xff}));equal(JsonInput.parse("\"\\ud83c\\udf6e\"".getBytes(StandardCharsets.UTF_8)),"🍮");

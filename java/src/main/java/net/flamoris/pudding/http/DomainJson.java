@@ -27,6 +27,7 @@ public final class DomainJson {
         out.put("components",Map.of("body",portion(s.body()),"sauce",portion(s.sauce())));out.put("bites",s.bites());out.put("rules_version",Core.RULES);out.put("fixture_only",true);
         out.put("effective_age",age(s.deadlines()==null?null:Lifecycle.age(s.deadlines(),now)));
         out.put("deadlines",s.deadlines()==null?null:Map.of("purchased_at",s.deadlines().purchased().toString(),"best_before_at",s.deadlines().bestBefore().toString(),"dispose_after_at",s.deadlines().disposeAfter().toString(),"timezone","Asia/Tokyo","rules_version","lifecycle-v0"));
+        if(s.disposalProcessed()!=null)out.put("disposal",Map.of("reason","monthly_expiry","effective_at",s.disposalEffective().toString(),"processed_at",s.disposalProcessed().toString()));
         Core.Taste taste=s.lastTaste();
         out.put("last_taste",taste==null?null:Map.of("features",taste.features(),"components_mg",Map.of("body",taste.bodyMg(),"sauce",taste.sauceMg()),"evaluated_at",taste.evaluatedAt().toString(),"aging",age(taste.aging()),"model_version","blend-interaction-v0","basis","derived_from_authored"));
         return out;

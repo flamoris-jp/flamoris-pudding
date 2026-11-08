@@ -21,7 +21,7 @@ HTTPSクライアント → HTTPSリバースプロキシ → Puddingの `/mcp` 
 python3 scripts/create_agent_credentials.py --agent agent_one --agent agent_two --output /protected/path/agents.credentials.json --client-directory /protected/path/client-tokens
 ```
 
-新しい出力先だけを受け入れ、サーバー用ファイルと個別client tokenは0600、tokenディレクトリは0700で作る。値は標準出力に出さない。各clientには自分のtokenだけを渡す。ファイルをコンテナーへ渡す場合はruntime UID 10001が読める所有者・権限とread-only bindを設定する。
+新しい出力先だけを受け入れ、サーバー用ファイルと個別client tokenは0600、tokenディレクトリは0700で作る。runtimeはグループ/他者に公開したファイル、symlink、他者が書換え可能な親ディレクトリを拒否する。値は標準出力に出さない。各clientには自分のtokenだけを渡す。ファイルをコンテナーへ渡す場合はruntime UID 10001が読める所有者・権限とread-only bindを設定する。
 
 ## HTTP/MCP契約
 
@@ -50,7 +50,7 @@ docker build --build-arg SOURCE_REVISION=FULL_COMMIT_SHA --build-arg APP_VERSION
 
 [Compose例](../deploy/compose.yaml)は非root UID 10001、read-only root、capability削除、no-new-privileges、PID/メモリー制限、tmpfs、loopbackへのポート公開を指定する。DBはアプリイメージやローカルvolumeに含めない。`PUDDING_IMAGE` と `PUDDING_ENV_FILE` を実際の値へ設定して起動する。外部DBは永続化・バックアップ・接続TLSを別途管理する。
 
-`/health/live` はプロセス稼働、`/health/ready` はDBの版・必要な列・runtime権限を確認する。秘密情報やエラー詳細は返さない。Docker内のhealthcheckはlive、Updaterの導入完了判定はreadyを使う。通常起動ではDBを初期化しない。
+`/health/live` はプロセス稼働、`/health/ready` はDBの版・必要な列・runtime権限を確認する。superuser、CREATEDB/CREATEROLE、public schemaのCREATEやschema所有者権限があるruntimeは拒否する。readyは最大3秒キャッシュし、DBを使う操作もこの確認を通す。秘密情報やエラー詳細は返さない。Docker内のhealthcheckはlive、Updaterの導入完了判定はreadyを使う。通常起動ではDBを初期化しない。
 
 HTTPS入口の[nginx例](../deploy/nginx.conf.example)はテンプレート。実際のDNS・証明書・外部URLを配備側で用意する。例を置いたことは実環境のTLS設定・配備を意味しない。
 
@@ -88,7 +88,7 @@ Updaterでは導入→awaiting_setup→起動→DB/初期設定の確認→導�
 
 ## 検証範囲
 
-ローカルではJavaコア16、HTTP/MCP10シナリオ、Python60テスト、既存の数値・状態照合を実行する。隔離CIではJDK25/PostgreSQL18と、実Dockerイメージ・実Updaterの導入/更新・合成TLS入口・MCP操作・再起動再送・DB/設定保持を検証する設定。最新結果はPRのChecksを参照する。CIのダウンロードはローカル候補へ置換し、公開URLからのダウンロードや実環境の導入成功とは区別する。
+ローカルではJavaコア16、HTTP/MCP10、設定3シナリオ、Python60テスト、既存の数値・状態照合を実行する。初回チェックポイントの隔離CIで実Docker/Updater/TLSの4シナリオが成功。最終受入れでもJDK25/PostgreSQL18（runtime権限を含む11シナリオ）と、実Dockerイメージ・実Updaterの導入/更新・合成TLS入口・MCP操作・再起動再送・DB/設定保持を検証する設定。最新結果はPRのChecksを参照する。CIのダウンロードはローカル候補へ置換し、公開URLからのダウンロードや実環境の導入成功とは区別する。
 
 Updaterの照合対象は公開ソースのcommit `d3390f5dfbd1b1fe453df714d8219a12cec2706e`。実ホストの導入済み版を確認したことは意味しない。配備時はServer Managerで状態を確認し、Updaterの利用可能な版とカタログの契約を照合する。
 

@@ -98,6 +98,22 @@ public final class PostgresTest {
             try{try{store("invalid-version",clock,null).execute(Command.create(UUID.randomUUID(),null));throw new AssertionError("schema accepted");}catch(SQLException expected){}}
             finally{sql("UPDATE pudding_config SET schema_version=1 WHERE singleton");}
         });
+        scenario("runtime grants and readiness exclude owner privileges",()->{
+            String password="fixture-"+UUID.randomUUID();
+            sql("CREATE ROLE pudding_runtime_probe LOGIN PASSWORD '"+password+"'");
+            var runtimeProps=new Properties();runtimeProps.putAll(props);runtimeProps.setProperty("user","pudding_runtime_probe");runtimeProps.setProperty("password",password);
+            PostgresStore.Connections runtime=()->DriverManager.getConnection(url,runtimeProps);
+            check(!new net.flamoris.pudding.http.PostgresBackend(runtime,clock).ready());
+            PostgresStore.grantRuntime(db,"pudding_runtime_probe");
+            var backend=new net.flamoris.pudding.http.PostgresBackend(runtime,clock);check(backend.ready());
+            check(backend.execute("runtime-fixture",Command.create(UUID.randomUUID(),null)).ok());
+            try(var c=runtime.open();var s=c.createStatement()) {
+                try{s.execute("UPDATE pudding_config SET threshold=4");throw new AssertionError("runtime changed configuration");}catch(SQLException expected){}
+                try{s.execute("CREATE TABLE pudding_runtime_forbidden(id integer)");throw new AssertionError("runtime performed DDL");}catch(SQLException expected){}
+            }
+            check(!new net.flamoris.pudding.http.PostgresBackend(db,clock).ready());
+            try{PostgresStore.grantRuntime(db,"pudding_test");throw new AssertionError("superuser runtime accepted");}catch(SQLException expected){}
+        });
         System.out.println("PostgreSQL integration scenarios: "+count);
     }
 }

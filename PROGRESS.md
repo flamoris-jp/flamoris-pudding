@@ -1,12 +1,13 @@
 # Progress 🍮
 
-## 2026-11-08 — 単独HTTP/MCP・Docker・Updater：検証中
+## 2026-11-08 — 単独HTTP/MCP・Docker・Updaterの実装と隔離検証
 
-- PR #7のJavaコア/PostgreSQL保存をmainへマージ済み。次スライスはブランチ `feat/standalone-mcp-docker-updater-20261108`。
+- PR #7のJavaコア/PostgreSQL保存をmainへマージ済み。次スライスは[PR #8](https://github.com/flamoris-jp/flamoris-pudding/pull/8)、ブランチ `feat/standalone-mcp-docker-updater-20261108`。
 - Java HTTP/MCP、管理側が固定するAgent別資格情報、Origin/Host/入力制限、通信と食事セッションの分離を実装。HTTP値型を最小限再利用し、既存の認証・Kernelは含めない。
 - Dockerfile、Compose/HTTPS入口例、初回DB権限付与、実イメージからのUpdaterカタログ生成、資格情報作成を追加。
-- ローカル：Javaコア16・HTTP/MCP10シナリオ、Python60テストと既存の数値/状態照合が成功。実Docker/Updater/HTTPSの隔離CIはこれから実行し、成功後に確定する。
-- 次の操作：PRで隔離CIを実行し、導入・更新・MCP・再送・DB/資格情報保持を確認。公開Release、実ホストのDB初期化・配備、購入/有料承認はまだ行っていない。
+- ローカル：Javaコア16・HTTP/MCP10・設定3シナリオ、Python60テストと既存の数値/状態照合が成功。初回チェックポイントの隔離CIで、実Docker/Updater導入・更新・HTTPS操作・保持の4シナリオが成功。最終の権限/JSON正規化もPR #8の最新CIを受入れ条件にする。
+- 再起動をまたぐJSONのキー順を固定し、資格情報ファイルの親/権限とDBの過大権限を拒否する確認を追加。PostgreSQLの検証はruntime権限を含む11シナリオへ拡張。
+- 次の操作：最新コミットの全CIを確認して統合し、その後に配布候補の公開・実ホスト導入の設定を具体化する。公開Release、実ホストのDB初期化・配備、購入/有料承認はまだ行っていない。
 
 ## 2026-11-08 — Javaコア・PostgreSQL保存の実装
 

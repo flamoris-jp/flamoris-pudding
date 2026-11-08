@@ -5,3 +5,4 @@
 !java/src/main/
 !java/src/main/**
 !Dockerfile
+!LICENSE

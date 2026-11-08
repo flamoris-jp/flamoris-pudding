@@ -12,6 +12,21 @@ import net.flamoris.pudding.http.*;
 /** Runtime process: remote DB, operator-bound Agent credentials, no Hub or auto-DDL. */
 public final class ServiceMain {
     private ServiceMain(){}
+    private static byte[] privateCredentials(Path input)throws IOException {
+        Path path=input.toAbsolutePath().normalize();
+        if(!Files.isRegularFile(path,LinkOption.NOFOLLOW_LINKS))throw new IllegalArgumentException("credential file");
+        if(Files.getPosixFilePermissions(path).stream().anyMatch(p->p.name().startsWith("GROUP_")||p.name().startsWith("OTHERS_")))throw new IllegalArgumentException("private credential permissions");
+        for(Path parent=path.getParent();parent!=null;parent=parent.getParent()) {
+            if(Files.isSymbolicLink(parent))throw new IllegalArgumentException("credential directory");
+            var permissions=Files.getPosixFilePermissions(parent);
+            boolean writable=permissions.contains(java.nio.file.attribute.PosixFilePermission.GROUP_WRITE)||permissions.contains(java.nio.file.attribute.PosixFilePermission.OTHERS_WRITE);
+            boolean sticky=(((Number)Files.getAttribute(parent,"unix:mode",LinkOption.NOFOLLOW_LINKS)).intValue()&01000)!=0;
+            if(writable&&!sticky)throw new IllegalArgumentException("private credential directory");
+        }
+        try(var stream=Files.newInputStream(path,StandardOpenOption.READ,LinkOption.NOFOLLOW_LINKS)) {
+            byte[] bytes=stream.readNBytes(65537);if(bytes.length>65536)throw new IllegalArgumentException("credential size");return bytes;
+        }
+    }
     public static PostgresStore.Connections connections(Map<String,String> env) {
         String url=Objects.requireNonNull(env.get("PUDDING_JDBC_URL"));
         if(!url.startsWith("jdbc:postgresql:")||url.toLowerCase(Locale.ROOT).contains("password="))throw new IllegalArgumentException("JDBC URL");
@@ -37,7 +52,7 @@ public final class ServiceMain {
             if(inline!=null){if(env.containsKey("PUDDING_CREDENTIALS_FILE"))throw new IllegalArgumentException("choose one credential source");credentials=inline.getBytes(java.nio.charset.StandardCharsets.UTF_8);}
             else {
                 Path path=Path.of(Objects.requireNonNull(env.get("PUDDING_CREDENTIALS_FILE")));
-                if(!Files.isRegularFile(path,LinkOption.NOFOLLOW_LINKS)||Files.size(path)>65536)throw new IllegalArgumentException("credential file");credentials=Files.readAllBytes(path);
+                credentials=privateCredentials(path);
             }
             int port=Integer.parseInt(setting(env,"PUDDING_HTTP_PORT","8080"));
             var hosts=new HashSet<>(csv(Objects.requireNonNull(env.get("PUDDING_ALLOWED_HOSTS"))));hosts.add("127.0.0.1:"+port);

@@ -1,5 +1,7 @@
 # Python研究版：ローカル研究コア 0.1.0
 
+Javaの独立HTTP/MCP・Docker・Updater候補は[単独サービス手順](STANDALONE_SERVICE.md)を参照。以下はPythonの照合用経路であり、Javaサービスの認証・配布状態とは区別する。
+
 Javaへの移植とPostgreSQL保存は[JAVA_MIGRATION](JAVA_MIGRATION.md)を参照。このページは照合用に維持するPython/SQLite/stdioの経路を説明する。Javaコアとの二重書込みは行わない。
 
 2026-11-08。実装範囲は合成Agentの研究用プリン、決定的な味の表現、SQLite保存、狭いstdio MCP。設計書の全機能を提供したものではない。
