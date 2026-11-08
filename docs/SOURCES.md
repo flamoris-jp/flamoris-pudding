@@ -105,6 +105,48 @@
 - 適用：stdioから始める。HTTP公開時は通信境界の認証とOrigin検証を含める。2026-07-28ではプロトコル上のセッションが削除されており、本設計の試食セッションとは別概念である。
 - 限界：既存クライアントやHubがこの版の全仕様を実機で満たすことは、本調査では確認していない。接続先との互換性確認は最初のMCP実装の受入れ条件にする。
 
+## 商用・Agent認可・決済設計の一次資料
+
+### S12 — リソースごとの認可
+
+- 提供元：OWASP Cheat Sheet Series。
+- 資料：[Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html)。
+- 種別：認可設計の公式ガイダンス。確認日2026-11-08。
+- 適用：本人認証と操作の認可を区別し、既定拒否、最小権限、リクエストごとの検証を設計する。
+- 限界：Agentの具体的なIDやプリンの所有権モデルを提供する仕様ではない。一つの人間に複数Agentを対応させる構造は、本プロジェクトの設計案である。
+
+### S13 — 対象を固定する操作承認
+
+- 提供元：OWASP Cheat Sheet Series。
+- 資料：[Transaction Authorization Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/Transaction_Authorization_Cheat_Sheet.html)。
+- 種別：取引・操作の承認に関する公式ガイダンス。確認日2026-11-08。
+- 適用：人間が重要な対象を確認できること、承認と実行の対象を結び付けること、サーバー側の検証、変更・再送・期限の扱い。
+- 限界：プリン一個につき15分という期限、具体的なUI、在庫の粒度は本設計の仮定である。ガイダンスを読むだけで人間の承認やAgentの本人性が保証されるわけではない。
+
+### S14 — 決済の確認と重複しない在庫発行
+
+- 提供元：Stripe公式ドキュメント。
+- 資料：[Fulfill orders](https://docs.stripe.com/checkout/fulfillment.md?ui=full-page)、[Receive Stripe events in your webhook endpoint](https://docs.stripe.com/webhooks)。
+- 種別：決済連携の公式技術資料。確認日2026-11-08。
+- 適用：サーバーでの決済状態確認、同じ取引の並行・再送を考慮した履行、Webhook署名検証、重複と順不同への対応。
+- 限界：Stripeの採用、価格、手数料、販売条件、返金可否は未決定。この資料を読むことは、実課金や決済アカウント設定の実施を意味しない。
+
+### S15 — Agentの権限と承認の完全性
+
+- 提供元：OWASP Cheat Sheet Series。
+- 資料：[AI Agent Security Cheat Sheet](https://cheatsheetseries.owasp.org/cheatsheets/AI_Agent_Security_Cheat_Sheet.html)、特にTool Security、Human-in-the-Loop Controls、Multi-Agent Security。
+- 種別：Agent向けの公式セキュリティガイダンス。確認日2026-11-08。
+- 適用：最小権限、判断と実行の分離、特定の主体・対象・操作への承認の結び付け、注入対策、実行時の独立した検証。
+- 限界：『人間が承認した』というLLMの出力は証明にならない。個別Agentを識別できる実行・認証経路が必要であり、今回その経路を構築・実機検証したわけではない。
+
+### S16 — トークンを鍵に結び付ける追加対策
+
+- 提供元：IETF / RFC Editor。
+- 資料：[RFC 9449 — OAuth 2.0 Demonstrating Proof of Possession (DPoP)](https://www.rfc-editor.org/rfc/rfc9449.html)。
+- 種別：公開された技術標準。確認日2026-11-08。
+- 適用：対応する実行元で、トークンを公開鍵とその秘密鍵の所持に結び付ける追加対策を検討する。
+- 限界：DPoP自体はAgentの人格を証明する認証方法ではなく、人間の承認やアプリの操作本文の意味も保証しない。実行環境自体が鍵を悪用できる侵害まで防げるとはしない。クライアント互換性と適用経路は未検証。
+
 ## 調査した既存FLAMORIS境界
 
 設計前に`flamoris-pudding`のAGENTS、README、RESEARCH、ROADMAP、PROGRESS、CONTRIBUTING、Issue #2とツリーを確認した。現在は文書のみである。
@@ -113,6 +155,8 @@
 - [共通方針](https://github.com/flamoris-jp/flamoris-commons/blob/main/docs/repository-policy.md)：責任境界、PR、資料とコードの権利。
 - [MCP Core](https://github.com/flamoris-jp/flamoris-mcp-core/blob/main/README.md)：.NETの共通MCP基盤。現行説明ではアプリ接続・権限・リビジョンなどを担い、プリンの状態を持つ基盤ではない。
 - [MCP Hub](https://github.com/flamoris-jp/flamoris-mcp-hub/blob/main/README.md)：カタログとルーティング。現行READMEの共有Bearer資格情報は一つの信頼グループで、個人の識別を保証しない。個人アカウントを連携する前に、その経路の契約を別途確認する。
+- [Hubの外部provenance](https://github.com/flamoris-jp/flamoris-mcp-hub/blob/main/docs/EXTERNAL_PROVENANCE.md)：個別クライアントの検証済み主体と、Generation専用経路の署名を持つ。任意の引数・ヘッダーは本人証明にしない。Pudding経路やクライアント内のAgent分離は実装済みと扱わない。
+- [AI Agentの固定principal契約](https://github.com/flamoris-jp/flamoris-ai-agent/blob/main/docs/MCP_CONTRACT.md)：信頼する起動元がHuman/Agent/Projectを固定する。輸送用Bearerを人間の本人認証とはみなさず、ツール引数で主体を変更させない。Puddingは人格・会話・記憶の管理を複製しない。
 
 これらはリポジトリの説明を確認した記録であり、現在動作中のサーバーの構成・接続・健全性を示すものではない。
 
