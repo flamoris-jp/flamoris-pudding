@@ -26,7 +26,9 @@ def main():
     sources = sorted((ROOT / 'java/src').glob('**/*.java'))
     # Some research hosts contain jdk.compiler but omit the javac launcher/ct.sym.
     compiler = [shutil.which('javac')] if shutil.which('javac') else ['java', 'com.sun.tools.javac.Main']
-    subprocess.run([*compiler, '-source', '21', '-target', '21', '-encoding', 'UTF-8', '-d', str(build), *map(str, sources)], check=True)
+    java_home = Path(shutil.which('java')).resolve().parents[1]
+    language = ['--release', '21'] if (java_home / 'lib/ct.sym').exists() else ['-source', '21', '-target', '21']
+    subprocess.run([*compiler, *language, '-encoding', 'UTF-8', '-d', str(build), *map(str, sources)], check=True)
     shutil.copytree(ROOT / 'java/src/main/resources', build, dirs_exist_ok=True)
     cp = os.pathsep.join([str(build), str(ROOT / 'java/target/dependency/*')])
     subprocess.run(['java', '-cp', cp, 'net.flamoris.pudding.CoreTest'], check=True)

@@ -27,7 +27,7 @@ java -cp java/target/verification net.flamoris.pudding.Main demo
 PYTHONPATH=src python3 -m unittest discover -s tests -v
 ```
 
-スクリプトはjavacでmain/testをコンパイルし、Javaコア16シナリオとPythonとの数値・状態照合を実行する。JDKのjavacランチャーがない研究環境では、存在するjdk.compilerモジュールを使う。言語レベルとclass targetは21。配備時のJVMは取り込む基盤の要求に合わせる。
+スクリプトはjavacでmain/testをコンパイルし、Javaコア16シナリオとPythonとの数値・状態照合を実行する。フルJDKでは `--release 21` で対象APIも制限する。javacランチャーやct.symが省略された研究環境では、存在するjdk.compilerモジュールとsource/target 21を使う。正式CIはフルJDK。配備時のJVMは取り込む基盤の要求に合わせる。
 
 外部依存のpgJDBCはMavenから解決する。Maven 3.9以上を使う。
 
@@ -57,7 +57,7 @@ java -cp 'java/target/classes:java/target/dependency/*' net.flamoris.pudding.Mai
 
 初回マイグレーションは一回だけ。すでに対象テーブルがある場合はエラーにして、既存DBを無条件に採用・上書きしない。将来の版移行、SQLiteからの移行、バックアップ/復元、DB変更とアプリのロールバック手順は未実装。
 
-運用時はマイグレーション用ロールと通常のSELECT/INSERT/UPDATE用ロールを分ける。実配置前に接続制限・TLS検証・最小権限を確認する。ローカルCIの一時DBの資格情報は本番用ではない。
+運用時はマイグレーション用ロールと通常のSELECT/INSERT/UPDATE用ロールを分け、利用するidentity/sequenceに必要な権限も確認する。実配置前に接続制限・TLS検証・最小権限を確認する。ローカルCIの一時DBの資格情報は本番用ではない。
 
 ## トランザクションと障害
 

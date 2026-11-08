@@ -1,8 +1,10 @@
 # Contributing
 
+Javaコアの変更は `python3 scripts/verify_java.py` によるPython照合と、隔離PostgreSQLのCIを受入れ条件にします。[Java移植手順](docs/JAVA_MIGRATION.md)を参照してください。Maven packageだけでは検証は完了しません。
+
 ## はじめに
 
-[README](README.md)、[AGENTS.md](AGENTS.md)、[研究方針](docs/RESEARCH.md)、[進捗](PROGRESS.md)、[実装手順](docs/IMPLEMENTATION.md)を読み、現在の状態を確認してください。Python 3.11以上のローカル研究版です。商用の認証・決済・公開サービスはまだありません。
+[README](README.md)、[AGENTS.md](AGENTS.md)、[研究方針](docs/RESEARCH.md)、[進捗](PROGRESS.md)、[実装手順](docs/IMPLEMENTATION.md)を読み、現在の状態を確認してください。Pythonの照合用研究版に加え、JavaコアとPostgreSQL保存アダプターを開発しています。商用の認証・決済・公開サービスはまだありません。
 
 ## リポジトリの取得
 
@@ -35,4 +37,3 @@ git switch -c docs/your-change
 秘密情報や個人情報をIssueやログへ貼らないでください。追加するコードや素材には出典と利用条件を明記してください。キャラクターや生成素材が自動的にApache-2.0になるわけではありません。
 
 FLAMORISは現状のまま提供され、個別サポートや回答期限の保証はありません。
-

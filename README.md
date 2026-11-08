@@ -10,7 +10,7 @@ AI美祥のための、仮想プリン研究所。
 
 プリンの味・香り・温度・口当たりなどを、どのようなデータで表現し、AIとの対話や創作に使えるかを探る実験リポジトリです。最初はプリン一個を記述して比べる、小さな実験から始めます。
 
-**Status: `development` — ローカル研究コア 0.1.0。** 基準プリンと3比較例、部品別の一口、開封・蓋の廃棄・片付け、SQLite保存と再送、合成Agentの違反管理、9ツールのstdio MCPを実装しました。期限・仮想劣化・税率変更・「期限切れ雑収入」の仕訳候補はfixtureで検証します。有料商品の認証・承認・決済、公開HTTP、毎日の自動起動、正式会計転記はまだありません。
+**Status: `development` — Java開発版 0.2.0-SNAPSHOT / Python研究版 0.1.0。** Javaの数値・食事コアとPostgreSQL保存を実装し、Python版との照合と隔離DBで検証します。Python/SQLiteの研究版と9ツールのstdio MCPは照合・研究用として残します。有料商品の認証・承認・決済、Java版HTTP/MCP、Docker配布、日次の自動起動、正式会計転記はまだありません。
 
 ### Java移植・PostgreSQL対応（開発版）
 
@@ -100,6 +100,8 @@ FLAMORISの実験・創作研究です。まずは独立した研究記録とし
 
 ## Getting started / はじめかた
 
+Java版は上記の `python3 scripts/verify_java.py` から始め、PostgreSQL接続は[Java移植手順](docs/JAVA_MIGRATION.md)を参照してください。以下はPython研究版の手順です。
+
 Python 3.11以上とIANAタイムゾーンデータのあるLinuxが対象です。実行時のPython外部依存はありません。リポジトリのルートで実行します。
 
 ```bash
@@ -129,4 +131,3 @@ FLAMORISは現状のまま提供され、個別サポートや動作保証はあ
 ## License
 
 コードは、別途記載がない限り [Apache License 2.0](LICENSE) です。キャラクター、イラスト、音楽、映像、モデル、データなどの非コード素材は同じライセンスとは限りません。追加する際は出典と利用条件を明記してください。
-
