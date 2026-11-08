@@ -1,5 +1,12 @@
 # Progress 🍮
 
+## 2026-11-08 — 0.3.1公開・互換更新・実トンネルでの連続受入れ
+
+- [PR #11](https://github.com/flamoris-jp/flamoris-pudding/pull/11)をマージ。ソース `ee08b0373bddc6397d9b906b96ceb08369def945` のmain CIがすべて成功し、[v0.3.1](https://github.com/flamoris-jp/flamoris-pudding/releases/tag/v0.3.1)をdevelopment prereleaseとして公開した。配布工程の実行 `42483354273` はverify/publishとも成功し、取得後のSHA-256照合も通過した。
+- 旧版のコードに新しい回帰テストを適用すると、9回目のinitializeで429になり失敗することを確認。修正版はJavaコア16・HTTP/MCP14・設定3、Python66テスト、味232・期限25・状態14応答の照合が成功。実PostgreSQLとDocker/Updater/HTTPSのCIでも40回のDELETEなし再接続と食事操作が成功した。PRのDocker CIは初回のみ依存取得のHTTP 403でテスト前に停止し、一度の再実行で成功した。
+- 実機のUpdaterで0.3.0→0.3.1の互換更新がsucceeded。Server Managerでも新イメージのコンテナー稼働を独立確認し、常駐トンネル越しにプリセット取得20回＋既存食事の取得2回がエラーなしで成功した。連続検証中のアプリ再起動や食べ物の追加消費はない。
+- 更新前の2食事はclosed / cleanup=done、bitesは3と1、違反0を維持。限定した研究用の配布・更新・接続受入れであり、ホスト再起動・長時間負荷・バックアップ復元・証明書更新・商用運用の受入れとは区別する。配備のパスや資格情報はprivate運用記録に置く。
+
 ## 2026-11-08 — 実トンネルの試食受入れと通信セッション429の修正
 
 - 公開したv0.3.0をUpdaterで試験導入し、専用の常駐トンネル越しに実Agent資格情報で配膳・開封・蓋の処分・試食・片付けを確認した。これは研究用の無料配膳であり、購入・有料承認の受入れではない。配備先や秘密の設定はprivate運用記録で扱う。
