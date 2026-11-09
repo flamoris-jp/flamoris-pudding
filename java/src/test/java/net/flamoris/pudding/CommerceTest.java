@@ -210,6 +210,37 @@ public final class CommerceTest {
                 try(var c=runtime.open();var q=c.createStatement()){try{q.execute("DELETE FROM pudding_commerce_events");throw new AssertionError("runtime erased audit");}catch(SQLException expected){}}
             }finally{store=ownerStore;}
         });
+        scenario("configured sandbox process starts with separate protected credentials",()->{
+            String token="z".repeat(43),agent="sandbox-resident-agent";
+            var credentials=new AgentCredentials(Json.write(List.of(Map.of("agent_id",agent,"token",token))).getBytes());
+            store.provision(HUMAN,agent,"fixture:resident",credentials.authenticate("Bearer "+token).credentialId());
+            var directory=java.nio.file.Files.createTempDirectory("pudding-sandbox-process-");
+            try {
+                java.nio.file.Files.setPosixFilePermissions(directory,java.nio.file.attribute.PosixFilePermissions.fromString("rwx------"));
+                var agentFile=directory.resolve("agent.json");var humanFile=directory.resolve("human.json");var keyFile=directory.resolve("mock.key");
+                java.nio.file.Files.writeString(agentFile,Json.write(List.of(Map.of("agent_id",agent,"token",token))));
+                java.nio.file.Files.writeString(humanFile,Json.write(List.of(Map.of("tenant_id",HUMAN.tenantId(),"human_id",HUMAN.humanId(),"token","h".repeat(43)))));
+                java.nio.file.Files.write(keyFile,"synthetic-notification-key-32bytes!".getBytes());
+                for(var file:List.of(agentFile,humanFile,keyFile))java.nio.file.Files.setPosixFilePermissions(file,java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"));
+                int port;try(var socket=new java.net.ServerSocket(0)){port=socket.getLocalPort();}
+                var builder=new ProcessBuilder("java","-cp",System.getProperty("java.class.path"),"net.flamoris.pudding.ServiceMain");
+                var config=builder.environment();config.keySet().removeIf(k->k.startsWith("PUDDING_"));
+                config.putAll(Map.of("PUDDING_JDBC_URL",env.get("PUDDING_TEST_JDBC_URL"),"PUDDING_DB_USER","pudding_sandbox_runtime","PUDDING_DB_PASSWORD","synthetic-sandbox-runtime-only", "PUDDING_HTTP_PORT",Integer.toString(port),"PUDDING_ALLOWED_HOSTS","127.0.0.1:"+port,"PUDDING_SANDBOX_ENABLED","true","PUDDING_CREDENTIALS_FILE",agentFile.toString(),"PUDDING_HUMAN_CREDENTIALS_FILE",humanFile.toString(),"PUDDING_MOCK_KEY_FILE",keyFile.toString()));
+                builder.redirectOutput(ProcessBuilder.Redirect.DISCARD);builder.redirectError(ProcessBuilder.Redirect.DISCARD);
+                var process=builder.start();try {
+                    boolean ready=false;
+                    for(int attempt=0;attempt<40;attempt++) {
+                        if(!process.isAlive())throw new AssertionError("configured sandbox exited");
+                        var connection=(java.net.HttpURLConnection)new java.net.URI("http://127.0.0.1:"+port+"/health/ready").toURL().openConnection();connection.setConnectTimeout(250);connection.setReadTimeout(1000);
+                        try{ready=connection.getResponseCode()==200;}catch(java.io.IOException ignored){}finally{connection.disconnect();}
+                        if(ready)break;Thread.sleep(100);
+                    }
+                    check(ready);
+                }finally{process.destroy();if(!process.waitFor(20,TimeUnit.SECONDS)){process.destroyForcibly();check(process.waitFor(10,TimeUnit.SECONDS));}}
+            }finally {
+                try(var files=java.nio.file.Files.list(directory)){for(var file:files.toList())java.nio.file.Files.delete(file);}java.nio.file.Files.delete(directory);
+            }
+        });
         System.out.println("Sandbox PostgreSQL scenarios: "+count);
     }
     static String assetId(Map<String,Object> state)throws Exception {

@@ -12,9 +12,9 @@ import stat
 
 def private_token(path):
     path = Path(path)
-    if path.is_symlink() or not path.is_file() or stat.S_IMODE(path.stat().st_mode) & 0o077:
+    if path.is_symlink() or not path.is_file() or path.stat().st_size > 130 or stat.S_IMODE(path.stat().st_mode) & 0o077:
         raise ValueError('private regular token file required')
-    with path.open('rb') as stream:
+    with os.fdopen(os.open(path, os.O_RDONLY | os.O_NOFOLLOW), 'rb') as stream:
         token = stream.read(130).strip()
     if not re.fullmatch(rb'[A-Za-z0-9_-]{43,128}', token):
         raise ValueError('token format')

@@ -60,7 +60,14 @@ public final class CommerceStore {
             if(stream==null)throw new IOException("missing sandbox migration");sql=new String(stream.readAllBytes(),StandardCharsets.UTF_8);
         }
         try(var c=db.open()) {
-            c.setAutoCommit(false);try(var s=c.createStatement()){s.execute("SET LOCAL lock_timeout='5s'");s.execute("SET LOCAL statement_timeout='30s'");s.execute(sql);c.commit();}
+            c.setAutoCommit(false);try(var s=c.createStatement()){
+                s.execute("SET LOCAL lock_timeout='5s'");s.execute("SET LOCAL statement_timeout='30s'");s.execute(sql);
+                // Preserve outstanding cleanup duties from schema 1 without changing food snapshots.
+                try(var q=c.createStatement();var rows=q.executeQuery("SELECT agent_id,state FROM pudding_sessions WHERE NOT closed")) {
+                    while(rows.next())trackCleanup(c,rows.getString(1),Codec.state(rows.getBytes(2)));
+                }
+                c.commit();
+            }
             catch(SQLException|RuntimeException e){c.rollback();throw e;}
         }
     }
@@ -410,6 +417,7 @@ public final class CommerceStore {
             }
             if(op.equals("pudding.rewards.request")) {
                 require(!Set.of("refunded","frozen","disposed","consumed").contains(a.get("status")),"ASSET_UNAVAILABLE");
+                if(scalar(c,"SELECT id FROM pudding_grants WHERE asset_id=? AND active AND expires_at>?",id,at(now))!=null)return ok("asset",publicAsset(a,now));
                 if(!Boolean.TRUE.equals(a.get("reward_requested"))){a.put("reward_requested",true);bump(a);saveAsset(c,a);}return ok("asset",publicAsset(a,now));
             }
             if(op.equals("pudding.premium.pause")) {
@@ -448,7 +456,8 @@ public final class CommerceStore {
         } else if(binding!=null&&coreOp!=Core.Op.CLEANUP&&coreOp!=Core.Op.LID_DISPOSE&&coreOp!=Core.Op.FINISH&&coreOp!=null)require(Boolean.TRUE.equals(binding.get("active")),"AGENT_SUSPENDED");
         if(op.equals("pudding.sessions.rest")) {
             require(old.revision()==integer(input,"expected_revision",0,Integer.MAX_VALUE),"REVISION_CONFLICT");
-            var track=experience(c,sid);var rested=Core.rest(old);store.save(c,rested);saveExperience(c,sid,Experience.rest(track,integer(input,"rest_ms",0,60000)));return ok("session",session(c,rested,now));
+            var track=experience(c,sid);if(track==null)track=Experience.unscoredHistory(old);
+            var rested=Core.rest(old);store.save(c,rested);saveExperience(c,sid,Experience.rest(track,integer(input,"rest_ms",0,60000)));return ok("session",session(c,rested,now));
         }
         var command=coreOp==Core.Op.CREATE?Core.Command.create(uuid(input,"request_id"),(String)input.getOrDefault("preset_id","custard-v0")):
             new Core.Command(uuid(input,"request_id"),coreOp,sid,integer(input,"expected_revision",0,Integer.MAX_VALUE),optionalInt(input,"amount_q"),optionalInt(input,"body_mg"),optionalInt(input,"sauce_mg"),null);
@@ -480,13 +489,14 @@ public final class CommerceStore {
         if(a.get("session_id")==null)require(integer(grant,"asset_revision",0,Integer.MAX_VALUE)==integer(a,"revision",0,Integer.MAX_VALUE),"APPROVAL_TARGET_CHANGED");
     }
     private static Map<String,Object> experience(Connection c,UUID session)throws SQLException {
-        var m=document(c,"SELECT data FROM pudding_experiences WHERE session_id=?",session);return m==null?Experience.initial():m;
+        return document(c,"SELECT data FROM pudding_experiences WHERE session_id=?",session);
     }
     private static void saveExperience(Connection c,UUID session,Map<String,Object> track)throws SQLException {
         update(c,"INSERT INTO pudding_experiences VALUES(?,?::jsonb) ON CONFLICT(session_id) DO UPDATE SET data=EXCLUDED.data",session,Json.write(track));
     }
     private static Map<String,Object> session(Connection c,Core.State state,Instant now)throws SQLException {
-        var view=DomainJson.state(state,now);view.put("affect_model",Experience.view(experience(c,state.id()),state));
+        var track=experience(c,state.id());if(track==null)track=Experience.unscoredHistory(state);
+        var view=DomainJson.state(state,now);view.put("affect_model",Experience.view(track,state));
         var premium=scalar(c,"SELECT id FROM pudding_assets WHERE session_id=?",state.id());view.put("experience_kind",premium==null?"research":"premium_sandbox");view.put("fixture_only",premium==null);return view;
     }
     private static Map<String,Object> policyView(Connection c,Core.Policy policy,String agent)throws SQLException {
@@ -514,10 +524,10 @@ public final class CommerceStore {
                     if(!reviewed&&!policy.locked()&&!policy.obligations().contains(obligation)) {
                         var next=policy.violate(obligation);update(c,"UPDATE pudding_agents SET policy=?,enforcement_revision=enforcement_revision+1 WHERE id=?",Codec.policy(next),agent);
                         if(next.locked())update(c,"UPDATE pudding_grants SET active=false WHERE agent_id=?",agent);
-                        audit(c,tenant,"maintenance","cleanup:"+id,clock.instant(),Map.of("obligation_id",obligation,"agent_id",agent,"policy",policyView(c,next,agent)));count++;
+                        audit(c,tenant,"maintenance","cleanup:"+id,clock.instant(),Map.of("obligation_id",obligation,"agent_id",agent,"policy",policyView(c,next,agent)));
                     }
                 }
-                if(due)update(c,"UPDATE pudding_cleanup_checks SET checked=true WHERE session_id=?",id);
+                if(due){update(c,"UPDATE pudding_cleanup_checks SET checked=true WHERE session_id=?",id);count++;}
                 c.commit();
             }catch(SQLException|RuntimeException e){c.rollback();throw e;}
         }

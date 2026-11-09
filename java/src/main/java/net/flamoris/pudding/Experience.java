@@ -15,13 +15,17 @@ public final class Experience {
         m.put("last_liking_q",null);m.put("last_valence_q",null);m.put("virtual_elapsed_ms",0);
         return m;
     }
+    public static Map<String,Object> unscoredHistory(Core.State state) {
+        var m=initial();int consumed=state==null?0:state.body().consumed()+state.sauce().consumed();
+        m.put("total_mg",consumed);m.put("historical_unscored_mg",consumed);return m;
+    }
     @SuppressWarnings("unchecked") private static Map<String,Integer> integers(Object raw) {
         var out=new TreeMap<String,Integer>();Input.object(raw).forEach((k,v)->{
             out.put(k,v==null?null:Math.toIntExact(Input.number(Map.of("value",v),"value",0,1000000)));
         });return out;
     }
     public static Map<String,Object> advance(Map<String,Object> previous,Core.State old,Core.State next) {
-        var m=new LinkedHashMap<>(previous==null?initial():previous);
+        var m=new LinkedHashMap<>(previous==null?unscoredHistory(old):previous);
         if(old!=null&&next.bites()>old.bites()) {
             var taste=Objects.requireNonNull(next.lastTaste());
             var fit=Sensory.preference(taste.features(),integers(m.get("targets")),integers(m.get("weights")));

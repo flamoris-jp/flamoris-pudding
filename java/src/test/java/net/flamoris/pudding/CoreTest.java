@@ -45,6 +45,7 @@ public final class CoreTest {
             var next=m.execute(action(Op.PEEL,old,250,0,0)).session();equal(Experience.view(track,next).get("anticipation_q"),450);
             next=m.execute(action(Op.PEEL,next,750,0,0)).session();next=m.execute(action(Op.LID_DISPOSE,next,0,0,0)).session();
             next=m.execute(action(Op.SCOOP,next,0,8000,2000)).session();old=next;next=m.execute(action(Op.TASTE,next,0,0,0)).session();
+            equal(Experience.view(Experience.unscoredHistory(next),next).get("satisfaction_q"),null);
             track=Experience.advance(track,old,next);var view=Experience.view(track,next);check(view.get("satisfaction_q")!=null);
             equal(Experience.view(Experience.rest(track,60000),next).get("afterglow_q"),0);
             var unknown=new TreeMap<String,Object>(track);unknown.put("targets",Map.of("saltiness_q",100));unknown.put("weights",Map.of("saltiness_q",1));unknown.put("total_mg",0);unknown.put("evaluated_mg",0);unknown.put("weighted_liking",0);

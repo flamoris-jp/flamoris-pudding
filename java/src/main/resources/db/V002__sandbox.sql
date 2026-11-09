@@ -1,7 +1,7 @@
 -- Additive, explicit owner migration. Old 0.3.x runtimes reject schema 2.
 SELECT pg_advisory_xact_lock(1347765327);
 DO $$ BEGIN
- IF (SELECT schema_version FROM pudding_config WHERE singleton) <> 1 THEN
+ IF NOT EXISTS(SELECT 1 FROM pudding_config WHERE singleton AND schema_version=1 AND rules_version='research-rules-v0') THEN
   RAISE EXCEPTION 'expected pudding schema 1';
  END IF;
 END $$;

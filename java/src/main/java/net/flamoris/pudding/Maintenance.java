@@ -15,7 +15,7 @@ public final class Maintenance implements AutoCloseable {
         try {
             store.heartbeat();var now=clock.instant().atZone(ZoneId.of("Asia/Tokyo"));
             LocalDate date=now.toLocalTime().isBefore(LocalTime.of(3,0))?now.toLocalDate().minusDays(1):now.toLocalDate();
-            if(!date.equals(completed)) {int count=store.expireBatch(100);store.cleanupBatch(100);if(count<100){store.dailyCompleted(date);completed=date;}}
+            if(!date.equals(completed)) {int count=store.expireBatch(100);int cleanup=store.cleanupBatch(100);if(count<100&&cleanup<100){store.dailyCompleted(date);completed=date;}}
         }catch(Exception e){System.err.println("Pudding maintenance deferred; inspect protected database and readiness.");}
     }
     @Override public void close(){executor.shutdownNow();try{executor.awaitTermination(15,TimeUnit.SECONDS);}catch(InterruptedException e){Thread.currentThread().interrupt();}}

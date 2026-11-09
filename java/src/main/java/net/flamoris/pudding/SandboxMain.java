@@ -22,7 +22,7 @@ public final class SandboxMain {
                 store.publishProduct(Input.object(JsonInput.parse(Files.readAllBytes(path))));
             }
             case "resume-cleanup-postgres" -> store.resumeCleanup(Objects.requireNonNull(env.get("PUDDING_OPERATOR_REASON")));
-            case "maintenance-sandbox-postgres" -> {return Map.of("disposed",store.expireBatch(100),"cleanup_violations",store.cleanupBatch(100));}
+            case "maintenance-sandbox-postgres" -> {return Map.of("disposed",store.expireBatch(100),"cleanup_checked",store.cleanupBatch(100));}
             default -> throw new IllegalArgumentException("sandbox command");
         }
         return Map.of("ok",true,"sandbox_only",true);
