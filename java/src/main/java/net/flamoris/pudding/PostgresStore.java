@@ -120,7 +120,7 @@ public final class PostgresStore {
                 }
                 if(transition.response().ok())save(c,transition.state());
                 if(!transition.policy().equals(policy)) {
-                    try(var s=c.prepareStatement("UPDATE pudding_agents SET policy=? WHERE id=?")){
+                    try(var s=c.prepareStatement(schemaVersion(c)==2?"UPDATE pudding_agents SET policy=?,enforcement_revision=enforcement_revision+1 WHERE id=?":"UPDATE pudding_agents SET policy=? WHERE id=?")){
                         s.setBytes(1,Codec.policy(transition.policy()));s.setString(2,actor);s.executeUpdate();
                     }
                 }

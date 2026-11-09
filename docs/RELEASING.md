@@ -9,6 +9,8 @@
 | 0.3.0 | 初回のdevelopment prerelease、Updater導入、専用トンネルで試食と片付け |
 | 0.3.1 | 通信セッション429対策、0.3.0からのUpdater互換更新、常駐トンネル22回の連続読み取り |
 
+0.4.0候補は公開済み0.3.1の実イメージを取得/ハッシュ照合し、schema 1のまま実Updaterで更新検証する。sandboxのschema 2移行は互換更新へ含めない。
+
 0.3.0と0.3.1のタグ/Releaseは公開済み。以下の公開操作を同じ版へ繰り返さない。次の公開ではアプリ版と候補生成の設定を更新し、互換性を検証した旧版だけを指定してmain CIを通す。文書だけの更新はアプリの再公開・再配備を必要としない。現在の配布結果は[進捗](../PROGRESS.md)を参照。
 
 ## ソースと候補の対応
@@ -75,3 +77,4 @@ Actions artifactは7日保持。候補が失効・削除されている場合は
 prereleaseをLatestのURLで代用しない。DB/runtimeロールとHTTPS入口は[単独サービス手順](STANDALONE_SERVICE.md)に従って用意する。この公開工程はサーバーの設定やDBを変更しない。
 
 参照：[GitHub CLI release create](https://cli.github.com/manual/gh_release_create)、[run download](https://cli.github.com/manual/gh_run_download)、[workflow events](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)。
+

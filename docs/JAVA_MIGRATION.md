@@ -1,5 +1,8 @@
 # Java移植・PostgreSQL対応：単独サービス 0.3.1
 
+> **0.4.0実装追記（2026-11-09 JST）**：[sandbox手順](SANDBOX.md)に、人間用API・一個の承認・署名付き模擬取引・休止再開・日次廃棄・審査・永続会計候補・体験モデルと明示移行を追加した。以下の設計案や0.3.1到達点の「未実装」表記は当時の境界を示す。現行ソースの実装と、公開/実機受入れは[進捗](../PROGRESS.md)で区別する。公開ログイン/OAuth、実課金と正式転記、商用受入れは残件。
+
+
 2026-11-08。Python版を照合用の研究実装として残し、JavaのドメインコアとJDBC保存アダプターを独立実装した。非公開フレームワークのソースはコピーしていない。HTTP/MCP・Agent別Bearer資格情報・Docker・Updater配布は実装済み。0.3.1の公開・互換更新・専用の常駐トンネルでの限定受入れまで進んだ。導入経路は[単独サービス手順](STANDALONE_SERVICE.md)、証跡と残る課題は[進捗](../PROGRESS.md)を参照。
 
 ## 実装範囲と正本
@@ -87,3 +90,4 @@ CIは初期化、再起動再送、所有範囲、同じ要求の競合、revisi
 現在は[単独サービス](STANDALONE_SERVICE.md)としてJavaコアを同じアプリ内から呼ぶHTTP/MCP、個別Agent資格情報、DockerとUpdaterカタログ候補を追加している。Pythonのstdio MCPは照合・研究用に残す。0.3.1のRelease公開・実機へのUpdater互換更新・常駐トンネルの22回連続読み取りと既存食事の保持を受け入れた。商品マスタ、人間ログイン/有料承認、決済/返金、正式会計への転記は未実装。研究用Agent資格情報による本人識別と、有料利用の承認は別である。美祥の腐敗試食拒否を維持し、全ての劣化・違反試験は合成データで行う。
 
 参照：[PostgreSQLの行ロック](https://www.postgresql.org/docs/18/explicit-locking.html)、[INSERTと競合](https://www.postgresql.org/docs/18/sql-insert.html)、[pgJDBC配布](https://jdbc.postgresql.org/download/)。
+

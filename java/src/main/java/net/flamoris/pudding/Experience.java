@@ -55,6 +55,8 @@ public final class Experience {
         m.put("afterglow_q",track.get("last_valence_q")==null?null:Rational.of(Input.number(track,"last_valence_q",-1000,1000)*(60000-elapsed),60000).halfUp());
         m.put("virtual_elapsed_ms",elapsed);m.put("expression_cues",cues==0?List.of("anticipating"):state.lastTaste()==null?List.of("foil_peel","surface_revealed"):List.of("savor","aftertaste"));
         if(state.lastTaste()!=null) {
+            Integer bitterness=state.lastTaste().features().get("bitterness_q");
+            m.put("expression_template",Map.of("version","feature-line-authored-v1","basis","authored_template","line",bitterness==null?"味の手掛かりを、もう少し確かめたいね。":bitterness>=300?"ほろ苦さの手掛かりが残るね。":"口当たりを、ゆっくり確かめたいね。"));
             // Temporal curves are expression weights, not measured seconds or extra liking points.
             m.put("perception_phases",List.of(Map.of("phase","onset","sweetness_weight_q",1000,"bitterness_weight_q",400),
                 Map.of("phase","middle","sweetness_weight_q",800,"bitterness_weight_q",800),

@@ -1,5 +1,8 @@
 # 単独HTTP/MCP・Docker・Updater（0.3.1）
 
+> **0.4.0実装追記（2026-11-09 JST）**：[sandbox手順](SANDBOX.md)に、人間用API・一個の承認・署名付き模擬取引・休止再開・日次廃棄・審査・永続会計候補・体験モデルと明示移行を追加した。以下の設計案や0.3.1到達点の「未実装」表記は当時の境界を示す。現行ソースの実装と、公開/実機受入れは[進捗](../PROGRESS.md)で区別する。公開ログイン/OAuth、実課金と正式転記、商用受入れは残件。
+
+
 2026-11-08。Javaコアへ直接接続するHTTP/MCPサービスを実装した。Hubへの登録や経由は不要。HTTPの値型を許諾済みの既存基盤から最小限再利用し、HTTP入力制約、Agent資格情報、セッション、MCP実行、配布処理はPudding側で実装する。既存基盤の認証・認可・Kernel・機密設定は含めない。
 
 **現在は研究用の無料配膳だけ。** 登録済み資格情報から安定したAgent IDを解決できるが、人間の購入・一個ごとの承認・有料在庫・返金・課金は未実装。呼出し側がAgent名や時計を指定して権限や期限を変えることはできない。美祥の腐敗試食拒否は維持し、劣化・違反の検証は合成主体で行う。
@@ -97,4 +100,5 @@ Updaterでは導入→awaiting_setup→起動→DB/初期設定の確認→導�
 Updaterの照合対象は公開ソースのcommit `d3390f5dfbd1b1fe453df714d8219a12cec2706e`。実ホストの導入済み版を確認したことは意味しない。配備時はServer Managerで状態を確認し、Updaterの利用可能な版とカタログの契約を照合する。
 
 参照：[MCP transport](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports)、[lifecycle](https://modelcontextprotocol.io/specification/2025-11-25/basic/lifecycle)、[tools](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)、[JSON RFC](https://www.rfc-editor.org/rfc/rfc8259)、[Updaterの契約](https://github.com/flamoris-jp/flamoris-updater/blob/main/docs/INSTALL.md)。
+
 

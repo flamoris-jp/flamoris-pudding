@@ -110,7 +110,7 @@ def run(args):
     gateway = command(['/usr/bin/docker', 'network', 'inspect', 'bridge', '--format', '{{(index .IPAM.Config 0).Gateway}}'], output=True)
     host_port, tls_port = port(), port()
     image_ids = {}
-    for version, image in [('0.3.0', args.image), ('0.3.1', args.next_image)]:
+    for version, image in [('0.3.1', args.image), ('0.4.0', args.next_image)]:
         image_ids[version] = command(['/usr/bin/docker', 'image', 'inspect', image, '--format', '{{.Id}}'], output=True)
     runtime_password = secrets.token_urlsafe(32)
     dsn = os.environ['PUDDING_TEST_ADMIN_DSN']
@@ -119,12 +119,13 @@ def run(args):
         base = Path(temp); state = base / 'updater-state'; root = base / 'apps'
         downloads = {}
         recipes = []
-        for version in ('0.3.0', '0.3.1'):
+        for version in ('0.3.1', '0.4.0'):
             archive = base / (version + '.tar')
             command(['/usr/bin/docker', 'image', 'save', '--output', str(archive), image_ids[version]])
-            catalog, asset = make_catalog(archive, None, version, args.revision,
+            source_revision = command(['/usr/bin/docker', 'image', 'inspect', image_ids[version], '--format', '{{index .Config.Labels "org.opencontainers.image.revision"}}'], output=True)
+            catalog, asset = make_catalog(archive, None, version, source_revision,
                 'linux/amd64', f'https://github.com/flamoris-jp/flamoris-pudding/releases/download/v{version}',
-                ['0.3.0'] if version == '0.3.1' else [])
+                ['0.3.1'] if version == '0.4.0' else [])
             recipes.extend(catalog['recipes'])
             downloads[catalog['recipes'][0]['downloads'][asset]['url']] = archive
         catalog = Catalog.model_validate({'catalog_version': 1, 'recipes': recipes})
@@ -169,7 +170,7 @@ def run(args):
 
         nginx = 'pudding-edge-' + secrets.token_hex(6)
         try:
-            job = manager.start('install', Start(application_id='flamoris-pudding', release='0.3.0', request_key='install-fixture', settings=settings))
+            job = manager.start('install', Start(application_id='flamoris-pudding', release='0.3.1', request_key='install-fixture', settings=settings))
             manager.run_job(job['job_id']); job_done(job, 'awaiting_setup')
             manager.start_setup('flamoris-pudding')
             wait_ready(f'http://127.0.0.1:{host_port}/health/ready')
@@ -199,7 +200,7 @@ http {{ server {{ listen {tls_port} ssl; ssl_certificate /tls/cert.pem; ssl_cert
             until = time.monotonic() + 20
             while True:
                 try:
-                    client.initialize('0.3.0'); break
+                    client.initialize('0.3.1'); break
                 except OSError:
                     if time.monotonic() >= until:
                         raise
@@ -211,9 +212,9 @@ http {{ server {{ listen {tls_port} ssl; ssl_certificate /tls/cert.pem; ssl_cert
             # No sleeps/restart: this exceeded the old per-Agent cap of eight.
             for _ in range(40):
                 client.session = None
-                client.initialize('0.3.0')
+                client.initialize('0.3.1')
                 assert len(client.request('tools/list')[1]['result']['tools']) == 9
-            service_version = '0.3.0'
+            service_version = '0.3.1'
             import uuid
             request_id = str(uuid.uuid4())
             first = client.tool('pudding.sessions.create', {'request_id': request_id})
@@ -239,12 +240,12 @@ http {{ server {{ listen {tls_port} ssl; ssl_certificate /tls/cert.pem; ssl_cert
             print('PASS HTTPS MCP initialization, authenticated tools, origin rejection and taste')
 
             # Retain DB, token, settings and serving across a real managed image update.
-            update = manager.start('update', Start(application_id='flamoris-pudding', release='0.3.1', request_key='update-fixture'))
+            update = manager.start('update', Start(application_id='flamoris-pudding', release='0.4.0', request_key='update-fixture'))
             manager.run_job(update['job_id']); job_done(update, 'succeeded')
             assert env_path.read_bytes() == original_env
             client = Client(f'https://127.0.0.1:{tls_port}/mcp', token, context)
-            service_version = '0.3.1'
-            client.initialize('0.3.1')
+            service_version = '0.4.0'
+            client.initialize('0.4.0')
             assert client.tool('pudding.sessions.create', {'request_id': request_id}) == first
             assert client.last_tool_content == first_text
             read = client.tool('pudding.sessions.get', {'session_id': session['id']})['session']

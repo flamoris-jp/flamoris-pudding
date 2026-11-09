@@ -18,7 +18,7 @@ public final class CommerceTest {
     static final String FP="a".repeat(64),OTHER="b".repeat(64);
     static final CommerceStore.Human HUMAN=new CommerceStore.Human("sandbox-tenant","sandbox-human");
     @FunctionalInterface interface Scenario{void run()throws Exception;}
-    static void scenario(String name,Scenario test)throws Exception{clock.now=NOW;test.run();count++;System.out.println("PASS sandbox "+name);}
+    static void scenario(String name,Scenario test)throws Exception{clock.now=clock.now.isAfter(NOW)?clock.now.plusSeconds(1):NOW;test.run();count++;System.out.println("PASS sandbox "+name);}
     static Map<String,Object> map(Object... pairs){var out=new LinkedHashMap<String,Object>();for(int i=0;i<pairs.length;i+=2)out.put((String)pairs[i],pairs[i+1]);return out;}
     static Map<String,Object> human(String op,Map<String,Object> args)throws Exception{return store.humanCall(HUMAN,op,args);}
     static Map<String,Object> change(String op,Map<String,Object> args)throws Exception{var m=new LinkedHashMap<>(args);m.put("request_id",UUID.randomUUID().toString());return human(op,m);}
@@ -165,6 +165,50 @@ public final class CommerceTest {
             var endpoint=new McpEndpoint(agents,new PostgresBackend(db,clock,store),Set.of("pudding.test"),Set.of(),clock,Duration.ofMinutes(5),management);
             var request=new HttpRequest(HttpMethod.POST,"/manage/v1/assets.list","HTTP/1.1",Map.of("host","pudding.test","authorization","Bearer "+"a".repeat(43),"content-type","application/json"),"{}".getBytes());equal(endpoint.handle(request).status(),401);
             equal(endpoint.handle(new HttpRequest(HttpMethod.POST,"/manage/v1/assets.list","HTTP/1.1",Map.of("host","pudding.test","authorization","Bearer "+"h".repeat(43),"content-type","application/json"),"{}".getBytes())).status(),200);
+        });
+        scenario("cleanup outage hold, grace and review never double-count or revive grants",()->{
+            String agent=freshAgent();var state=nested(agentChange(agent,"pudding.sessions.create",map("preset_id","custard-v0")),"session");
+            state=nested(action(agent,"pudding.sessions.finish",state),"session");store.heartbeat();clock.now=clock.now.plusSeconds(601);
+            equal(store.cleanupBatch(100),0);store.resumeCleanup("fixture outage resolved");
+            equal(store.cleanupBatch(100),0);clock.now=clock.now.plusSeconds(601);check(store.cleanupBatch(100)>0);equal(store.cleanupBatch(100),0);
+            var view=agent(agent,"pudding.sessions.get",map("session_id",state.get("id")));var policy=object(view.get("policy"));
+            equal(integer(policy,"violations",0,100),1);int beforeRevision=integer(policy,"enforcement_revision",0,100);
+            var reviewed=nested(change("policy.review",map("agent_id",agent,"obligation_ids",policy.get("obligation_ids"),"reason","fixture correction")),"policy");
+            equal(integer(reviewed,"violations",0,100),0);check(integer(reviewed,"enforcement_revision",0,100)>beforeRevision);
+            var create=agentChange(agent,"pudding.sessions.create",Map.of());equal(create.get("error"),"UNRESOLVED_SESSION");equal(integer(object(create.get("policy")),"violations",0,100),0);
+            nested(action(agent,"pudding.sessions.cleanup",state),"session");
+        });
+        scenario("refund and revoke cannot be turned into a fresh approval",()->{
+            String agent=freshAgent();var a=assigned(agent);var approved=approve(a);var begun=begin(agent,approved);a=findAsset((String)a.get("id"));
+            var o=nested(change("refunds.request",map("order_id",a.get("order_id"),"expected_revision",1)),"order");
+            a=findAsset((String)a.get("id"));a=nested(change("approval.revoke",map("asset_id",a.get("id"),"expected_revision",a.get("revision"))),"asset");
+            var preview=human("approval.preview",map("asset_id",a.get("id")));
+            equal(change("approval.confirm",map("asset_id",a.get("id"),"expected_revision",a.get("revision"),"intent_digest",preview.get("intent_digest"))).get("error"),"PAYMENT_NOT_USABLE");
+            equal(agentChange(agent,"pudding.premium.pause",map("asset_id",a.get("id"),"expected_revision",a.get("revision"))).get("error"),"ASSET_UNAVAILABLE");
+        });
+        scenario("least-privilege runtime serves 16 MCP tools and a paid begin",()->{
+            sql("CREATE ROLE pudding_sandbox_runtime LOGIN PASSWORD 'synthetic-sandbox-runtime-only'");CommerceStore.grantRuntime(db,"pudding_sandbox_runtime");
+            var runtimeProps=new Properties();runtimeProps.putAll(props);runtimeProps.setProperty("user","pudding_sandbox_runtime");runtimeProps.setProperty("password","synthetic-sandbox-runtime-only");
+            PostgresStore.Connections runtime=()->DriverManager.getConnection(env.get("PUDDING_TEST_JDBC_URL"),runtimeProps);
+            String token="s".repeat(43),agent="sandbox-http-agent";
+            var agents=new AgentCredentials(Json.write(List.of(Map.of("agent_id",agent,"token",token))).getBytes());var identity=agents.authenticate("Bearer "+token);
+            store.provision(HUMAN,agent,"fixture:http",identity.credentialId());
+            var ownerStore=store;store=new CommerceStore(runtime,clock,payments);
+            try {
+                var backend=new PostgresBackend(runtime,clock,store);check(backend.ready());var approval=approve(assigned(agent));
+                var humans=new HumanCredentials(Json.write(List.of(Map.of("tenant_id",HUMAN.tenantId(),"human_id",HUMAN.humanId(),"token","h".repeat(43)))).getBytes(),agents);
+                var endpoint=new McpEndpoint(agents,backend,Set.of("pudding.test"),Set.of(),clock,Duration.ofMinutes(5),new ManagementEndpoint(humans,store));
+                var headers=new LinkedHashMap<String,String>();headers.put("host","pudding.test");headers.put("authorization","Bearer "+token);headers.put("accept","application/json, text/event-stream");headers.put("content-type","application/json");
+                var init=map("jsonrpc","2.0","id",1,"method","initialize","params",map("protocolVersion",McpEndpoint.VERSION,"capabilities",Map.of(),"clientInfo",map("name","sandbox-test","version","1")));
+                var reply=endpoint.handle(new HttpRequest(HttpMethod.POST,"/mcp","HTTP/1.1",headers,Json.write(init).getBytes()));equal(reply.status(),200);headers.put("mcp-session-id",reply.headers().get("Mcp-Session-Id"));headers.put("mcp-protocol-version",McpEndpoint.VERSION);
+                endpoint.handle(new HttpRequest(HttpMethod.POST,"/mcp","HTTP/1.1",headers,Json.write(map("jsonrpc","2.0","method","notifications/initialized")).getBytes()));
+                var listed=endpoint.handle(new HttpRequest(HttpMethod.POST,"/mcp","HTTP/1.1",headers,Json.write(map("jsonrpc","2.0","id",2,"method","tools/list")).getBytes()));
+                equal(((List<?>)object(Input.object(JsonInput.parse(listed.body())).get("result")).get("tools")).size(),16);
+                var a=object(approval.get("asset"));var args2=map("request_id",UUID.randomUUID().toString(),"asset_id",a.get("id"),"expected_revision",a.get("revision"),"grant_id",approval.get("grant_id"));
+                var call=map("jsonrpc","2.0","id",3,"method","tools/call","params",map("name","pudding.premium.begin","arguments",args2));
+                var result=endpoint.handle(new HttpRequest(HttpMethod.POST,"/mcp","HTTP/1.1",headers,Json.write(call).getBytes()));var domain=object(object(Input.object(JsonInput.parse(result.body())).get("result")).get("structuredContent"));check(Boolean.TRUE.equals(domain.get("ok")));
+                try(var c=runtime.open();var q=c.createStatement()){try{q.execute("DELETE FROM pudding_commerce_events");throw new AssertionError("runtime erased audit");}catch(SQLException expected){}}
+            }finally{store=ownerStore;}
         });
         System.out.println("Sandbox PostgreSQL scenarios: "+count);
     }

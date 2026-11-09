@@ -36,10 +36,18 @@ jobs:
           path: _updater
       - name: Install validation runtime
         run: python3 -m pip install ./_updater
-      - name: Build actual candidate images
+      - name: Fetch and verify the published predecessor
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
-          docker build --build-arg SOURCE_REVISION=${{ github.sha }} --build-arg APP_VERSION=0.3.0 -t pudding-ci:0.3.0 .
-          docker build --build-arg SOURCE_REVISION=${{ github.sha }} --build-arg APP_VERSION=0.3.1 -t pudding-ci:0.3.1 .
+          gh release download v0.3.1 --repo "$GITHUB_REPOSITORY" --dir /tmp/pudding-previous
+          (cd /tmp/pudding-previous && sha256sum --check SHA256SUMS)
+          docker load --input /tmp/pudding-previous/linux-amd64--image.tar
+          previous_image=$(python3 -c 'from pathlib import Path; from scripts.build_pudding_release import image_config; print(image_config(Path("/tmp/pudding-previous/linux-amd64--image.tar"), None)[1])')
+          docker tag "$previous_image" pudding-ci:0.3.1
+      - name: Build actual candidate image
+        run: |
+          docker build --build-arg SOURCE_REVISION=${{ github.sha }} --build-arg APP_VERSION=0.4.0 -t pudding-ci:0.4.0 .
       - name: Real Updater install/update and HTTPS MCP
         env:
           PUDDING_TEST_ALLOW_SCHEMA: 'true'
@@ -47,14 +55,14 @@ jobs:
         run: >-
           sudo --preserve-env=PUDDING_TEST_ALLOW_SCHEMA,PUDDING_TEST_ADMIN_DSN
           "$(command -v python3)" scripts/verify_standalone_install.py
-          --image pudding-ci:0.3.0 --next-image pudding-ci:0.3.1
+          --image pudding-ci:0.3.1 --next-image pudding-ci:0.4.0
           --revision ${{ github.sha }}
       - name: Build a reviewable release candidate
         run: |
-          docker save --output /tmp/pudding-image.tar pudding-ci:0.3.1
-          python3 scripts/build_pudding_release.py --image-tar /tmp/pudding-image.tar --release 0.3.1 --compatible-from 0.3.0 --revision ${{ github.sha }} --platform linux/amd64 --base-url https://github.com/flamoris-jp/flamoris-pudding/releases/download/v0.3.1 --output candidate
+          docker save --output /tmp/pudding-image.tar pudding-ci:0.4.0
+          python3 scripts/build_pudding_release.py --image-tar /tmp/pudding-image.tar --release 0.4.0 --compatible-from 0.3.1 --revision ${{ github.sha }} --platform linux/amd64 --base-url https://github.com/flamoris-jp/flamoris-pudding/releases/download/v0.4.0 --output candidate
       - name: Verify release promotion against the actual candidate
-        run: python3 scripts/prepare_pudding_release.py prepare --candidate candidate --output verified-release --source-sha "$GITHUB_SHA" --release 0.3.1
+        run: python3 scripts/prepare_pudding_release.py prepare --candidate candidate --output verified-release --source-sha "$GITHUB_SHA" --release 0.4.0
       - uses: actions/upload-artifact@v4
         with:
           name: pudding-standalone-candidate-${{ github.sha }}

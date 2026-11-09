@@ -5,6 +5,7 @@ DO $$ BEGIN
   RAISE EXCEPTION 'expected pudding schema 1';
  END IF;
 END $$;
+ALTER TABLE pudding_agents ADD COLUMN enforcement_revision integer NOT NULL DEFAULT 0 CHECK(enforcement_revision>=0);
 CREATE TABLE pudding_accounts (
  tenant_id varchar(80) PRIMARY KEY, human_id varchar(80) NOT NULL UNIQUE,
  last_mutation_at timestamptz NOT NULL DEFAULT '-infinity'

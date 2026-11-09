@@ -321,9 +321,9 @@ public final class CommerceStore {
             for(Object id:ids){require(id instanceof String&&remaining.remove(id),"UNKNOWN_OBLIGATION");
                 update(c,"INSERT INTO pudding_policy_reviews VALUES(?,?,?,?,?)",agent,id,h.humanId,text(input,"reason",512),at(now));}
             var next=new Core.Policy(policy.threshold(),remaining);
-            update(c,"UPDATE pudding_agents SET policy=? WHERE id=?",Codec.policy(next),agent);
+            update(c,"UPDATE pudding_agents SET policy=?,enforcement_revision=enforcement_revision+1 WHERE id=?",Codec.policy(next),agent);
             update(c,"UPDATE pudding_grants SET active=false WHERE agent_id=?",agent);
-            return ok("policy",DomainJson.policy(next,agent));
+            return ok("policy",policyView(c,next,agent));
         }
         require(integer(b,"epoch",1,Integer.MAX_VALUE)==integer(input,"expected_epoch",1,Integer.MAX_VALUE),"BINDING_CONFLICT");
         update(c,"UPDATE pudding_bindings SET active=?,epoch=epoch+1 WHERE agent_id=?",op.equals("agents.resume"),agent);
@@ -338,7 +338,7 @@ public final class CommerceStore {
         m.put("best_before_at",a.get("best_before_at"));m.put("dispose_after_at",a.get("dispose_after_at"));m.put("quality",age(a,now).status());
         m.put("additional_charge_minor",0);m.put("rules_version","premium-sandbox-v1");
         Core.Policy p=null;if(b!=null)p=core((String)a.get("agent_id"),null).lockActor(c);
-        m.put("policy",p==null?null:DomainJson.policy(p,(String)a.get("agent_id")));
+        m.put("policy",p==null?null:policyView(c,p,(String)a.get("agent_id")));
         if(a.get("session_id")!=null) {var state=core((String)a.get("agent_id"),null).load(c,uuid(a,"session_id"),false);m.put("remaining_mg",state.remaining());}
         else m.put("remaining_mg",100000);
         return m;
@@ -390,7 +390,7 @@ public final class CommerceStore {
     private Map<String,Object> agentRead(Connection c,String agent,String op,Map<String,Object> input)throws SQLException {
         if(op.equals("pudding.sessions.get")) {
             var store=core(agent,null);var state=store.load(c,uuid(input,"session_id"),false);
-            require(state!=null,"NOT_FOUND");var out=ok("session",session(c,state,clock.instant()));out.put("policy",DomainJson.policy(store.lockActor(c),agent));return out;
+            require(state!=null,"NOT_FOUND");var out=ok("session",session(c,state,clock.instant()));out.put("policy",policyView(c,store.lockActor(c),agent));return out;
         }
         if(op.equals("pudding.inventory.list"))return ok("inventory",documents(c,"SELECT data FROM pudding_assets WHERE agent_id=? ORDER BY id LIMIT 100",agent).stream().map(a->publicAsset(a,clock.instant())).toList());
         var a=agentAsset(c,agent,uuid(input,"asset_id"));var out=publicAsset(a,clock.instant());
@@ -452,7 +452,7 @@ public final class CommerceStore {
         }
         var command=coreOp==Core.Op.CREATE?Core.Command.create(uuid(input,"request_id"),(String)input.getOrDefault("preset_id","custard-v0")):
             new Core.Command(uuid(input,"request_id"),coreOp,sid,integer(input,"expected_revision",0,Integer.MAX_VALUE),optionalInt(input,"amount_q"),optionalInt(input,"body_mg"),optionalInt(input,"sauce_mg"),null);
-        var result=store.executeInTransaction(c,command,a!=null);var out=DomainJson.response(result,agent,now);
+        var result=store.executeInTransaction(c,command,a!=null);var out=DomainJson.response(result,agent,now);out.put("policy",policyView(c,result.policy(),agent));
         if(result.policy().locked())update(c,"UPDATE pudding_grants SET active=false WHERE agent_id=?",agent);
         if(result.ok()) {
             var state=result.session();
@@ -489,6 +489,11 @@ public final class CommerceStore {
         var view=DomainJson.state(state,now);view.put("affect_model",Experience.view(experience(c,state.id()),state));
         var premium=scalar(c,"SELECT id FROM pudding_assets WHERE session_id=?",state.id());view.put("experience_kind",premium==null?"research":"premium_sandbox");view.put("fixture_only",premium==null);return view;
     }
+    private static Map<String,Object> policyView(Connection c,Core.Policy policy,String agent)throws SQLException {
+        var view=new LinkedHashMap<>(DomainJson.policy(policy,agent));
+        view.put("enforcement_revision",Integer.parseInt(scalar(c,"SELECT enforcement_revision FROM pudding_agents WHERE id=?",agent)));
+        view.put("obligation_ids",policy.obligations().stream().sorted().toList());return view;
+    }
     private static void trackCleanup(Connection c,String agent,Core.State state)throws SQLException {
         if(state.cleanupDue()!=null)update(c,"INSERT INTO pudding_cleanup_checks(session_id,agent_id,due_at,resolved) VALUES(?,?,?,?) ON CONFLICT(session_id) DO UPDATE SET resolved=EXCLUDED.resolved",state.id(),agent,at(state.cleanupDue()),state.serving()==Core.Serving.CLOSED);
     }
@@ -507,9 +512,9 @@ public final class CommerceStore {
                     String obligation="cleanup:"+id;
                     boolean reviewed=scalar(c,"SELECT obligation_id FROM pudding_policy_reviews WHERE agent_id=? AND obligation_id=?",agent,obligation)!=null;
                     if(!reviewed&&!policy.locked()&&!policy.obligations().contains(obligation)) {
-                        var next=policy.violate(obligation);update(c,"UPDATE pudding_agents SET policy=? WHERE id=?",Codec.policy(next),agent);
+                        var next=policy.violate(obligation);update(c,"UPDATE pudding_agents SET policy=?,enforcement_revision=enforcement_revision+1 WHERE id=?",Codec.policy(next),agent);
                         if(next.locked())update(c,"UPDATE pudding_grants SET active=false WHERE agent_id=?",agent);
-                        audit(c,tenant,"maintenance","cleanup:"+id,clock.instant(),Map.of("obligation_id",obligation,"agent_id",agent,"policy",DomainJson.policy(next,agent)));count++;
+                        audit(c,tenant,"maintenance","cleanup:"+id,clock.instant(),Map.of("obligation_id",obligation,"agent_id",agent,"policy",policyView(c,next,agent)));count++;
                     }
                 }
                 if(due)update(c,"UPDATE pudding_cleanup_checks SET checked=true WHERE session_id=?",id);
