@@ -12,6 +12,7 @@ public final class McpEndpoint {
     private final AgentCredentials credentials;
     private final PuddingTools tools;
     private final Backend backend;
+    private final ManagementEndpoint management;
     private final Set<String> hosts,origins;
     private final Clock clock;
     private final SecureRandom random=new SecureRandom();
@@ -29,7 +30,11 @@ public final class McpEndpoint {
         RpcFailure(int code,String message){this.code=code;this.message=message;}
     }
     public McpEndpoint(AgentCredentials credentials,Backend backend,Set<String> hosts,Set<String> origins,Clock clock,Duration lifetime) {
+        this(credentials,backend,hosts,origins,clock,lifetime,null);
+    }
+    public McpEndpoint(AgentCredentials credentials,Backend backend,Set<String> hosts,Set<String> origins,Clock clock,Duration lifetime,ManagementEndpoint management) {
         this.credentials=Objects.requireNonNull(credentials);this.backend=Objects.requireNonNull(backend);tools=new PuddingTools(backend);
+        this.management=management;
         if(hosts.isEmpty()||hosts.size()>16||origins.size()>16||lifetime.isNegative()||lifetime.isZero()||lifetime.compareTo(Duration.ofMinutes(30))>0)throw new IllegalArgumentException("endpoint configuration");
         for(String host:hosts)if(host.isBlank()||host.length()>253||host.chars().anyMatch(c->c<=32||c>126)||host.contains("/")||host.contains("@"))throw new IllegalArgumentException("allowed host");
         for(String origin:origins) {
@@ -45,6 +50,7 @@ public final class McpEndpoint {
         if(!hosts.contains(host))return Reply.refused(403);
         String origin=request.headers().get("origin");
         if(origin!=null&&!origins.contains(origin))return Reply.refused(403);
+        if(request.target().startsWith("/manage/v1/"))return management==null?Reply.refused(404):management.handle(request);
         if(request.target().equals("/health/live")||request.target().equals("/health/ready")) {
             if(request.method()!=HttpMethod.GET&&request.method()!=HttpMethod.HEAD)return Reply.refused(405).header("Allow","GET, HEAD");
             boolean ready=request.target().equals("/health/live")||backend.ready();return Reply.json(ready?200:503,Map.of("status",ready?"ok":"not_ready"));
@@ -83,7 +89,7 @@ public final class McpEndpoint {
                 String session=create(identity,id);
                 if(session==null)return Reply.refused(429);
                 return result(id,Map.of("protocolVersion",VERSION,"capabilities",Map.of("tools",Map.of("listChanged",false)),
-                    "serverInfo",Map.of("name","flamoris-pudding","version",Version.VALUE),"instructions","Authenticated research servings only; no premium approval or payments.")).header("Mcp-Session-Id",session);
+                    "serverInfo",Map.of("name","flamoris-pudding","version",Version.VALUE),"instructions",backend.sandboxEnabled()?"Research and explicitly authorized sandbox servings. Management credentials and real payments are not Agent tools.":"Authenticated research servings only; no premium approval or payments.")).header("Mcp-Session-Id",session);
             }
             Session session=acquire(request,identity);leased=session;
             if(session==null)return Reply.refused(404);
@@ -107,7 +113,7 @@ public final class McpEndpoint {
                 if(!(params.get("name") instanceof String name))throw new RpcFailure(-32602,"Invalid tool name");
                 var args=objectAny(params.getOrDefault("arguments",Map.of()));
                 Map<String,Object> domain;
-                try{domain=tools.call(identity.agentId(),name,args);}catch(IllegalArgumentException e){throw new RpcFailure(-32602,"Invalid tool arguments");}
+                try{domain=tools.call(identity,name,args);}catch(IllegalArgumentException e){throw new RpcFailure(-32602,"Invalid tool arguments");}
                 return result(id,Map.of("content",List.of(Map.of("type","text","text",Json.write(domain))),"structuredContent",domain,"isError",!Boolean.TRUE.equals(domain.get("ok"))));
             }
             throw new RpcFailure(-32601,"Method not found");

@@ -6,7 +6,7 @@ RUN mvn --batch-mode package dependency:copy-dependencies -DincludeScope=runtime
 
 FROM eclipse-temurin:25-jre
 ARG SOURCE_REVISION=unknown
-ARG APP_VERSION=0.3.1
+ARG APP_VERSION=0.4.0
 LABEL org.opencontainers.image.title="flamoris-pudding" \
       org.opencontainers.image.version=$APP_VERSION \
       org.opencontainers.image.revision=$SOURCE_REVISION \

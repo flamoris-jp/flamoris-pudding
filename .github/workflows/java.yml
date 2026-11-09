@@ -39,3 +39,11 @@ jobs:
           PUDDING_TEST_DB_USER: pudding_test
           PUDDING_TEST_DB_PASSWORD: synthetic-ci-only
         run: python3 scripts/verify_java.py --postgres
+      - name: Restore sandbox database and reconcile durable replay
+        env:
+          PUDDING_TEST_ALLOW_SCHEMA: 'true'
+          PUDDING_TEST_JDBC_URL: jdbc:postgresql://localhost:5432/pudding_test
+          PUDDING_TEST_DB_USER: pudding_test
+          PUDDING_TEST_DB_PASSWORD: synthetic-ci-only
+          PUDDING_TEST_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+        run: python3 scripts/verify_sandbox_recovery.py

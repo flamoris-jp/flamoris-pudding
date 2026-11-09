@@ -28,4 +28,8 @@ public final class Lifecycle {
         return new Age("expired_pending_disposal",Rational.of(1).sub(u).mul(Rational.of(1000)).halfUp(),
             rotten.n().signum()<0?0:rotten.mul(Rational.of(1000)).halfUp());
     }
+    public static int agedLiking(int fit,Age age) {
+        if(fit<0||fit>1000)throw new IllegalArgumentException("liking");
+        return Rational.of((long)fit*age.qualityQ()*(1000-age.rottenEggLikeQ()),1000000).halfUp();
+    }
 }

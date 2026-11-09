@@ -68,6 +68,20 @@ def presets():
         variant["id"] = name
         variant["components"][component]["features"][feature] = value
         result[name] = variant
+    for name, changes in (
+        ("milk-v1", dict(sweetness_q=600, bitterness_q=0, hardness_q=300,
+                         smoothness_q=950, aroma_milk_q=900, aroma_egg_q=0,
+                         aroma_vanilla_q=250, aroma_cocoa_q=0)),
+        ("chocolate-v1", dict(sweetness_q=600, bitterness_q=350, hardness_q=500,
+                              smoothness_q=900, aroma_milk_q=500, aroma_egg_q=0,
+                              aroma_vanilla_q=150, aroma_cocoa_q=900)),
+    ):
+        variant = deepcopy(baseline)
+        variant.update(id=name, model_version="pudding-variants-authored-v1", source_ids=[])
+        variant["components"]["body"]["mass_mg"] = 100000
+        variant["components"]["body"]["features"].update(changes)
+        variant["components"]["sauce"] = {"mass_mg": 0, "features": {}}
+        result[name] = variant
     return result
 
 

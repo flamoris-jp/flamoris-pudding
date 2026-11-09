@@ -1,0 +1,21 @@
+{
+  "id": "sandbox-pudding",
+  "version": "v1",
+  "preset_id": "custard-v0",
+  "price_version": "example-jpy-v1",
+  "currency": "JPY",
+  "amount_minor": 1100,
+  "revenue_policy": "sandbox-review-v1",
+  "from": "2026-01-01T00:00:00Z",
+  "until": null,
+  "tax_rule": {
+    "id": "example-unapproved-tax",
+    "version": "v1",
+    "numerator": 1,
+    "denominator": 10,
+    "category": "unapproved-fixture",
+    "jurisdiction": "JP",
+    "from": "2026-01-01T00:00:00Z",
+    "until": null
+  }
+}

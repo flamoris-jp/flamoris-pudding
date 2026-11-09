@@ -30,7 +30,9 @@ class SensoryTests(unittest.TestCase):
     def test_variants_change_one_feature_only_and_presets_are_independent(self):
         all_presets = presets()
         base = all_presets.pop("custard-v0")
-        for variant in all_presets.values():
+        for name, variant in all_presets.items():
+            if not name.startswith("custard-"):
+                continue
             differences = [(component, key)
                            for component in base["components"]
                            for key in base["components"][component]["features"]

@@ -18,14 +18,19 @@ public final class PuddingTools {
         this.backend=backend;
         try(var stream=PuddingTools.class.getResourceAsStream("/mcp/tools.json")) {
             if(stream==null)throw new IOException("tool definitions missing");
-            tools=(List<?>)JsonInput.parse(stream.readAllBytes());
+            var all=(List<?>)JsonInput.parse(stream.readAllBytes());
+            tools=backend.sandboxEnabled()?all:all.stream().filter(t->((Map<?,?>)t).get("name") instanceof String n&&(OPS.containsKey(n)||n.equals("pudding.presets.list")||n.equals("pudding.sessions.get"))).toList();
         }catch(IOException|ClassCastException e){throw new IllegalStateException("tool configuration",e);}
         var index=new HashMap<String,Map<?,?>>();
         for(Object raw:tools) {var t=(Map<?,?>)raw;index.put((String)t.get("name"),(Map<?,?>)t.get("inputSchema"));}
-        if(index.size()!=9)throw new IllegalStateException("tool configuration");schemas=Map.copyOf(index);
+        if(index.size()!=(backend.sandboxEnabled()?16:9))throw new IllegalStateException("tool configuration");schemas=Map.copyOf(index);
     }
     public List<?> list(){return tools;}
     public Map<String,Object> call(String agent,String name,Map<String,Object> input)throws Exception {
+        return call(new AgentCredentials.Identity(agent,""),name,input);
+    }
+    public Map<String,Object> call(AgentCredentials.Identity identity,String name,Map<String,Object> input)throws Exception {
+        String agent=identity.agentId();
         Map<?,?> schema=schemas.get(name);
         if(schema==null)throw new IllegalArgumentException("unknown tool");
         var properties=(Map<?,?>)schema.get("properties");var required=(List<?>)schema.get("required");
@@ -39,9 +44,10 @@ public final class PuddingTools {
                 if("uuid".equals(rule.get("format")))uuid(s);
             }
         }
+        var sandbox=backend.sandboxCall(identity,name,input);if(sandbox!=null)return sandbox;
         if(name.equals("pudding.presets.list")) {
             var values=new LinkedHashMap<String,Object>();
-            for(String id:List.of("custard-v0","custard-sweeter-v0","custard-firmer-v0","custard-bitterer-v0"))values.put(id,DomainJson.preset(Sensory.preset(id)));
+            for(String id:Sensory.presetIds())values.put(id,DomainJson.preset(Sensory.preset(id)));
             return Map.of("ok",true,"presets",values);
         }
         if(name.equals("pudding.sessions.get")) {

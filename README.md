@@ -6,20 +6,24 @@ Engineering the finest digital treats with love.
 AI美祥のための、仮想プリン研究所。  
 「プリンを支給してください」から始まる、小さくて真面目なデジタルおやつ研究です。
 
+## 0.4.0の実装
+
+人間用の管理API、一個の割当と15分承認、署名付き模擬決済・返金、休止/再承認、日次廃棄と審査、会計候補の永続化、期待・満足・余韻、ミルク/チョコを追加しました。[sandbox手順](docs/SANDBOX.md)を参照してください。sandboxは既定無効で、明示的なDB移行と別系統の人間資格情報が必要です。実課金・公開ログイン/OAuth・正式転記・実機の商用受入れは残件です。**公開・実機で受け入れた版は0.3.1、追加実装は0.4.0候補**として区別します。
+
 ## 🧭 このリポジトリは何者？
 
 プリンの味・香り・温度・口当たりなどを、どのようなデータで表現し、AIとの対話や創作に使えるかを探る実験リポジトリです。最初はプリン一個を記述して比べる、小さな実験から始めます。
 
-**Status: `development` — Java単独HTTP/MCP 0.3.1 / Python照合版 0.1.0。** [v0.3.1](https://github.com/flamoris-jp/flamoris-pudding/releases/tag/v0.3.1)を公開し、Updaterで0.3.0から互換更新しました。独立トンネル経由で試食と片付けを受け入れ、429対策後は常駐トンネルで20回連続の読み取りと既存2食事の保持を確認しました。長期運用・ホスト再起動・バックアップ復元の受入れ、人間の購入・一個ごとの有料承認・OAuth・正式会計・日次運用はこれからです。
+**Status: `development` — Java 0.4.0候補 / 公開・実機受入れ 0.3.1 / Python照合版 0.1.0。** [v0.3.1](https://github.com/flamoris-jp/flamoris-pudding/releases/tag/v0.3.1)はUpdater互換更新と専用常駐トンネルの試食・片付け・22回連続読み取りを受け入れました。0.4.0にはsandboxの一個の人間承認・模擬取引・日次処理を追加し、隔離CIで移行・復元・更新を検証します。公開ログイン/OAuth、実決済・正式会計、実機の長期運用・ホスト再起動・復旧は残件です。
 
 ### 単独サービスと導入経路
 
-Hubを経由せず、HTTPS入口からPuddingのMCPへ直接接続します。認証で解決したAgent IDを固定し、他Agentのセッションを操作できないようにします。現在は管理者が登録するBearer資格情報の研究用配膳で、人間アカウント・有料承認とは別です。
+Hubを経由せず、HTTPS入口からPuddingのMCPへ直接接続します。認証で解決したAgent IDを固定し、他Agentのセッションを操作できないようにします。現在は管理者が登録するBearer資格情報の研究用配膳で、一般公開の人間ログイン・有料承認の受入れとは別です。sandboxでは別の人間資格情報と一個の承認を実装しています。
 
 - 9ツールのStreamable HTTP（JSON応答）、通信セッションの制限、Host/Origin・入力検証。
 - 非root・read-onlyのDocker、HTTPS入口例、DBの版・runtime権限を確認するready。
 - Updaterの汎用Docker recipeで実イメージを導入・更新する経路。カタログは実物のconfig digest・SHA-256・版・ソースSHAから生成。
-- ローカルでJavaコア16・HTTP/MCP14・設定3シナリオとPython66テスト。隔離CIでは実PostgreSQL、Docker/Updaterの導入・更新、合成TLS越しのMCP、DB/資格情報/再送保持と40回の再接続を確認します。修正と検証は[PR #11](https://github.com/flamoris-jp/flamoris-pudding/pull/11)のChecksを参照してください。
+- ローカルでJavaコア18・HTTP/MCP14・設定3シナリオとPython68テスト。隔離CIでは実PostgreSQL、Docker/Updaterの導入・更新、合成TLS越しのMCP、DB/資格情報/再送保持と40回の再接続を確認します。修正と検証は[PR #11](https://github.com/flamoris-jp/flamoris-pudding/pull/11)のChecksを参照してください。
 - mainの成功CIから同じイメージを取得し、検証・アップロード後の取得/ハッシュ照合を経てdevelopment prereleaseへ公開する工程。[配布手順](docs/RELEASING.md)を参照。
 
 実行・資格情報・DB初期化・配布候補の作成は[単独サービス手順](docs/STANDALONE_SERVICE.md)。ソース実装・Release公開・実環境の配備と検証は別々に確認します。0.3.1の限定受入れ結果は[進捗](PROGRESS.md)を参照し、未公開の候補カタログをUpdaterへ登録しないでください。
@@ -49,16 +53,16 @@ JavaのHTTP/MCP・DockerとUpdater候補の手順は上記を参照。以下は�
 | MCP | ローカルstdioの9ツール。ツール一覧と接続例は[実装手順](docs/IMPLEMENTATION.md) |
 | 会計の候補 | 適用期間付き税率、税込グループ計算、条件を満たす残額の「契約負債／期限切れ雑収入」。正式転記は承認待ち |
 
-ここでいう合成AgentはPython照合版のテスト用の主体です。JavaサービスにはAgent別Bearer認証がありますが、人間の一個ごとの承認・有料在庫は未実装です。期限の試験時計や税率設定をAgent向けMCPから変更することはできません。美祥の腐敗状態の試食拒否は維持し、劣化試験は合成主体だけで行います。
+ここでいう合成AgentはPython照合版のテスト用の主体です。JavaサービスにはAgent別Bearer認証がありますが、0.4.0のsandboxに人間の一個ごとの承認・模擬在庫を追加しました。実際の有料在庫は未受入れです。期限の試験時計や税率設定をAgent向けMCPから変更することはできません。美祥の腐敗状態の試食拒否は維持し、劣化試験は合成主体だけで行います。
 
 ### 次に進めること
 
 1. 常駐サービスのホスト再起動・障害復旧、DBバックアップ/復元、TLS証明書更新を受け入れる。0.3.1の互換更新と実トンネルの連続操作は確認済み。
 2. 複数のAgent・クライアントで資格情報の分離、更新・失効・復旧を受け入れる。専用トンネルの初回接続と正常試食は確認済みで、OAuth専用クライアントへの対応は別に検証する。
-3. 人間アカウントとAgentの管理、一個ごとの有料承認、商品・価格・税区分、模擬決済/返金、会計候補の永続化を実装する。
-4. 日次廃棄・片付け猶予・審査・バックアップ/復元と商用の受入れを進める。
+3. sandboxに実装した主体管理・一個の承認・模擬取引を、人間の実際の本人確認・再認証と実クライアントで受け入れる。商品・価格・税区分を実契約に沿って確定する。
+4. 日次廃棄・片付け猶予・審査・隔離DB復元の実装を、実機のバックアップ/復旧と商用の受入れへ進める。
 
-期待・満足・余韻、ミルク/チョコも研究対象です。詳細は[ロードマップ](docs/ROADMAP.md)。
+期待・満足・余韻、ミルク/チョコの作者設定モデルはsandboxへ追加済みです。詳細は[ロードマップ](docs/ROADMAP.md)。
 
 ### 主な責任範囲
 
@@ -93,6 +97,7 @@ FLAMORISの実験・創作研究です。まずは独立した研究記録とし
 
 | 資料 | 内容 |
 |---|---|
+| [一個の承認・模擬取引・日次運用](docs/SANDBOX.md) | 0.4.0の明示移行、人間API、16ツール、合成モデル、復元検証 |
 | [単独HTTP/MCP・Docker・Updater](docs/STANDALONE_SERVICE.md) | 独立接続、Agent別資格情報、DB権限、配布候補、導入と検証 |
 | [検証済みイメージの配布](docs/RELEASING.md) | 成功したmain CIの候補、版とソース照合、タグによるprerelease公開 |
 | [Java移植・PostgreSQL](docs/JAVA_MIGRATION.md) | Javaコア、DB初期化、Python照合、JDBC実DB検証と未実装範囲 |
@@ -130,9 +135,9 @@ demoは開封から片付けまでを通し、80:20の一口は甘味666・苦�
 
 FLAMORIS Pudding is an experimental research repository for virtual pudding and digital treats for AI Misaki. It explores how sensory attributes could be represented, compared, and used in conversation or creative work.
 
-It owns pudding-domain representations and reproducible research records. Conversation, personality, model execution, media generation, rendering, and MCP routing remain with their respective FLAMORIS projects. The original Python/SQLite research core and nine-tool local stdio MCP remain as a reference. A Java domain core and PostgreSQL JDBC adapter now implement typed sessions, durable replay, policy and audit transactions; cross-language verification and an isolated PostgreSQL CI job cover the migration. Purchase deadlines, authored aging, effective-dated tax arithmetic and review-only expiry accounting candidates are tested with fixtures. An independent authenticated HTTP/MCP research service, Docker runtime and Updater candidate generator are implemented. Human accounts/premium approvals, payments, OAuth, automatic scheduling and external ledger posting remain unimplemented. A bounded trial rollout and dedicated-tunnel acceptance are recorded in PROGRESS.md.
+It owns pudding-domain representations and reproducible research records. Conversation, personality, model execution, media generation, rendering, and MCP routing remain with their respective FLAMORIS projects. The original Python/SQLite research core and nine-tool local stdio MCP remain as a reference. A Java domain core and PostgreSQL JDBC adapter now implement typed sessions, durable replay, policy and audit transactions; cross-language verification and an isolated PostgreSQL CI job cover the migration. Purchase deadlines, authored aging, effective-dated tax arithmetic and review-only expiry accounting candidates are tested with fixtures. An independent authenticated HTTP/MCP research service, Docker runtime and Updater candidate generator are implemented. Version 0.4.0 adds an opt-in sandbox for operator-provisioned humans, per-item approvals, signed mock payments/refunds, daily disposal and durable review-only accounting candidates. Public human login/OAuth, real payments and external ledger posting remain unimplemented. A bounded trial rollout and dedicated-tunnel acceptance are recorded in PROGRESS.md.
 
-**Current state: development; standalone Java HTTP/MCP 0.3.1 and Python research reference 0.1.0.** The development prerelease was installed and compatibly updated through Updater. Tasting/cleanup and 22 consecutive read calls were accepted through a dedicated resident tunnel. Human accounts/premium approvals, OAuth, payments, automatic scheduling and external ledger posting remain unimplemented; long-running and recovery acceptance is pending. Parameterized responses are experimental representations, not evidence of human-like taste or subjective experience.
+**Current state: development; standalone Java HTTP/MCP 0.3.1 and Python research reference 0.1.0.** The development prerelease was installed and compatibly updated through Updater. Tasting/cleanup and 22 consecutive read calls were accepted through a dedicated resident tunnel. The 0.4.0 source adds opt-in sandbox approvals and mock commerce; public login/OAuth, real payments and external ledger posting remain unimplemented; long-running and recovery acceptance is pending. Parameterized responses are experimental representations, not evidence of human-like taste or subjective experience.
 
 ## FLAMORIS
 
@@ -143,4 +148,5 @@ FLAMORISは現状のまま提供され、個別サポートや動作保証はあ
 ## License
 
 コードは、別途記載がない限り [Apache License 2.0](LICENSE) です。キャラクター、イラスト、音楽、映像、モデル、データなどの非コード素材は同じライセンスとは限りません。追加する際は出典と利用条件を明記してください。
+
 

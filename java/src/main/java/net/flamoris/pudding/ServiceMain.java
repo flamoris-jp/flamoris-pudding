@@ -12,7 +12,7 @@ import net.flamoris.pudding.http.*;
 /** Runtime process: remote DB, operator-bound Agent credentials, no Hub or auto-DDL. */
 public final class ServiceMain {
     private ServiceMain(){}
-    private static byte[] privateCredentials(Path input)throws IOException {
+    static byte[] privateCredentials(Path input)throws IOException {
         Path path=input.toAbsolutePath().normalize();
         if(!Files.isRegularFile(path,LinkOption.NOFOLLOW_LINKS))throw new IllegalArgumentException("credential file");
         if(Files.getPosixFilePermissions(path).stream().anyMatch(p->p.name().startsWith("GROUP_")||p.name().startsWith("OTHERS_")))throw new IllegalArgumentException("private credential permissions");
@@ -56,10 +56,24 @@ public final class ServiceMain {
             }
             int port=Integer.parseInt(setting(env,"PUDDING_HTTP_PORT","8080"));
             var hosts=new HashSet<>(csv(Objects.requireNonNull(env.get("PUDDING_ALLOWED_HOSTS"))));hosts.add("127.0.0.1:"+port);
-            var endpoint=new McpEndpoint(new AgentCredentials(credentials),new PostgresBackend(connections(env),clock),hosts,
-                csv(setting(env,"PUDDING_ALLOWED_ORIGINS","")),clock,Duration.ofMinutes(30));
+            var agents=new AgentCredentials(credentials);var db=connections(env);
+            String mode=setting(env,"PUDDING_SANDBOX_ENABLED","false");
+            if(!Set.of("true","false").contains(mode))throw new IllegalArgumentException("sandbox mode");
+            boolean sandbox=mode.equals("true");
+            var commerce=sandbox?new CommerceStore(db,clock,new SandboxPayments(privateCredentials(Path.of(Objects.requireNonNull(env.get("PUDDING_MOCK_KEY_FILE")))))):null;
+            ManagementEndpoint management=null;Maintenance maintenance=null;
+            if(sandbox) {
+                var humans=new HumanCredentials(privateCredentials(Path.of(Objects.requireNonNull(env.get("PUDDING_HUMAN_CREDENTIALS_FILE")))),agents);
+                management=new ManagementEndpoint(humans,commerce);maintenance=new Maintenance(commerce,clock);
+            }
+            var backend=new PostgresBackend(db,clock,commerce);
+            if(sandbox&&!backend.ready())throw new IllegalStateException("sandbox database not ready");
+            var endpoint=new McpEndpoint(agents,backend,hosts,
+                csv(setting(env,"PUDDING_ALLOWED_ORIGINS","")),clock,Duration.ofMinutes(30),management);
             var server=new SocketServer(InetAddress.getByName(setting(env,"PUDDING_HTTP_BIND","127.0.0.1")),port,16,15000,endpoint);
-            Runtime.getRuntime().addShutdownHook(new Thread(server::close));server.start();
+            Maintenance ownedMaintenance=maintenance;
+            Runtime.getRuntime().addShutdownHook(new Thread(()->{if(ownedMaintenance!=null)ownedMaintenance.close();server.close();}));
+            server.start();if(maintenance!=null)maintenance.start();
             System.err.println("Pudding HTTP/MCP started; configured secrets are not logged.");
             new CountDownLatch(1).await();
         }catch(Exception e){System.err.println("Pudding startup failed. Check protected configuration and JDBC runtime.");System.exit(1);}

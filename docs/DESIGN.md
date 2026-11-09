@@ -1,8 +1,11 @@
 # 仮想プリンの体験とMCP設計案 🍮
 
+> **0.4.0実装追記（2026-11-09 JST）**：[sandbox手順](SANDBOX.md)に、人間用API・一個の承認・署名付き模擬取引・休止再開・日次廃棄・審査・永続会計候補・体験モデルと明示移行を追加した。以下の設計案や0.3.1到達点の「未実装」表記は当時の境界を示す。現行ソースの実装と、公開/実機受入れは[進捗](../PROGRESS.md)で区別する。公開ログイン/OAuth、実課金と正式転記、商用受入れは残件。
+
+
 作成・更新：2026-11-08（Asia/Tokyo）。設計版：`pudding-design-v0.3`。
 
-**状態：全体の設計案。** 最初の味の比較・開封・一口・片付け・stdio MCPをPython研究版として実装し、Java/PostgreSQLの単独HTTP/MCP 0.3.1ではAgent別Bearer認証・Updater配布/互換更新・専用常駐トンネルの限定受入れまで進んだ。本文の全ての型・ツール・期待/余韻・TTL・プレミアムを提供したものではない。現行Javaの9ツール・認証・通信制約は[単独サービス手順](STANDALONE_SERVICE.md)、Python照合版は[実装手順](IMPLEMENTATION.md)、固定した数値実験は[実験001](EXPERIMENT_001.md)を正本とする。現在の実装状況は [PROGRESS](../PROGRESS.md)、資料の出典と適用限界は [SOURCES](SOURCES.md) を参照する。
+**状態：全体の設計案。** 最初の味の比較・開封・一口・片付け・stdio MCPをPython研究版として実装し、Java/PostgreSQLの単独HTTP/MCP 0.3.1ではAgent別Bearer認証・Updater配布/互換更新・専用常駐トンネルの限定受入れまで進んだ。0.4.0は期待/余韻とプレミアムのsandboxを追加したが、本文の全ての型・ツール・TTL・商用連携を提供したものではない。Javaの既定9ツール・認証・通信制約は[単独サービス手順](STANDALONE_SERVICE.md)、Python照合版は[実装手順](IMPLEMENTATION.md)、固定した数値実験は[実験001](EXPERIMENT_001.md)を正本とする。現在の実装状況は [PROGRESS](../PROGRESS.md)、資料の出典と適用限界は [SOURCES](SOURCES.md) を参照する。
 
 この文書の研究用セッション寿命と、購入版の在庫保持は区別する。[商用・Agent報酬設計](PREMIUM.md)に人間の購入・Agent認証・承認を、[利用規則とライフサイクル](ETHICS_AND_LIFECYCLE.md)に蓋の廃棄・片付け・違反・ロック・購入14日と暦の1か月の期限を定める。食べ終わりだけでセッションを閉じず、片付けまで行う。購入済みの一個を、研究用の再作成や削除で増減させない。
 
@@ -430,4 +433,5 @@ MCPの`outputSchema`と`structuredContent`を使い、互換性のため同じJS
 [ETHICS_AND_LIFECYCLE.md](ETHICS_AND_LIFECYCLE.md)を含め、片付けまでのセッション、Agentごとの違反・ロック、購入から14日と暦の1か月、劣化と日次廃棄を扱う。これらのルールは販売・配膳前に示し、購入済みの一個には合意済みの版を保持する。
 
 研究用MVPを商用認証の代用にしない。無料の研究体験を確かめる段階と、購入版の権限・台帳を確かめる段階を分け、商用の条件を満たすまで実課金・公開販売・有料在庫の消費は導入しない。
+
 

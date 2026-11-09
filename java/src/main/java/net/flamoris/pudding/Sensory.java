@@ -16,6 +16,9 @@ public final class Sensory {
         });
         return Collections.unmodifiableMap(new TreeMap<>(source));
     }
+    public static List<String> presetIds(){return List.of("custard-v0","custard-sweeter-v0","custard-firmer-v0","custard-bitterer-v0","milk-v1","chocolate-v1");}
+    public static int bodyMass(Preset p){return p.sauce().isEmpty()?100000:90000;}
+    public static int sauceMass(Preset p){return p.sauce().isEmpty()?0:10000;}
     public static Preset preset(String id) {
         var b = base(700, 0, 450, 850, 700, 500, 350, 0);
         var s = base(600, 800, 0, 1000, 0, 0, 0, 800);
@@ -24,6 +27,8 @@ public final class Sensory {
             case "custard-sweeter-v0" -> b.put("sweetness_q",800);
             case "custard-firmer-v0" -> b.put("hardness_q",600);
             case "custard-bitterer-v0" -> s.put("bitterness_q",900);
+            case "milk-v1" -> {b=base(600,0,300,950,900,0,250,0);s=new TreeMap<>();}
+            case "chocolate-v1" -> {b=base(600,350,500,900,500,0,150,0);b.put("aroma_cocoa_q",900);s=new TreeMap<>();}
             default -> throw new IllegalArgumentException("unknown preset");
         }
         return new Preset(id,b,s);
@@ -36,7 +41,7 @@ public final class Sensory {
         return m;
     }
     public static Map<String,Integer> bite(Preset p,int body,int sauce,boolean interaction) {
-        if (body<0 || body>90000 || sauce<0 || sauce>10000 || body+sauce==0) throw new IllegalArgumentException("bite mass");
+        if (body<0 || body>bodyMass(p) || sauce<0 || sauce>sauceMass(p) || body+sauce==0) throw new IllegalArgumentException("bite mass");
         int total=body+sauce;
         var values=new TreeMap<String,Rational>();
         var keys=new TreeSet<String>();
