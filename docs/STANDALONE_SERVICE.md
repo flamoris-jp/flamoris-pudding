@@ -1,4 +1,4 @@
-# 単独HTTP/MCP・Docker・Updater（0.3.1）
+# 単独HTTP/MCP・Docker・Updater（0.4.0候補 / 実機0.3.1）
 
 > **0.4.0実装追記（2026-11-09 JST）**：[sandbox手順](SANDBOX.md)に、人間用API・一個の承認・署名付き模擬取引・休止再開・日次廃棄・審査・永続会計候補・体験モデルと明示移行を追加した。以下の設計案や0.3.1到達点の「未実装」表記は当時の境界を示す。現行ソースの実装と、公開/実機受入れは[進捗](../PROGRESS.md)で区別する。公開ログイン/OAuth、実課金と正式転記、商用受入れは残件。
 
@@ -50,7 +50,7 @@ MCP revision `2025-11-25` のStreamable HTTP・JSON応答を扱う。独立HTTP/
 ## Docker実行
 
 ```bash
-docker build --build-arg SOURCE_REVISION=FULL_COMMIT_SHA --build-arg APP_VERSION=0.3.1 -t pudding:0.3.1 .
+docker build --build-arg SOURCE_REVISION=FULL_COMMIT_SHA --build-arg APP_VERSION=0.4.0 -t pudding:0.4.0 .
 ```
 
 `FULL_COMMIT_SHA` は実際の40桁SHAへ置き換える。[runtime.env.example](../deploy/runtime.env.example)を参考に、DB接続・個別token・Hostを保護されたローカル設定へ用意する。例のtokenは起動できないプレースホルダー。
@@ -68,8 +68,8 @@ PostgreSQL 18を対象とする。DB管理側でPudding専用DB、schema所有�
 管理用のDB接続を保護されたowner.envへ用意し、初回だけアプリ所有の処理を実行する。
 
 ```bash
-docker run --rm --env-file /protected/path/owner.env pudding:0.3.1 migrate-postgres
-docker run --rm --env-file /protected/path/owner.env pudding:0.3.1 grant-runtime-postgres
+docker run --rm --env-file /protected/path/owner.env pudding:0.4.0 migrate-postgres
+docker run --rm --env-file /protected/path/owner.env pudding:0.4.0 grant-runtime-postgres
 ```
 
 owner.envには `PUDDING_JDBC_URL`、`PUDDING_DB_USER`、`PUDDING_DB_PASSWORD` と、権限付与先の `PUDDING_RUNTIME_ROLE` を指定する。接続先はコンテナーから到達できる名前を使う。runtime側へ管理者の資格情報を渡さない。grantは既存の非superuser・非CREATEDB/CREATEROLE・LOGINロールを確認して必要なtable/sequence権限を付ける。管理側でロールの所有権・所属・接続元制限も確認する。
@@ -81,8 +81,8 @@ owner.envには `PUDDING_JDBC_URL`、`PUDDING_DB_USER`、`PUDDING_DB_PASSWORD` �
 PuddingのリポジトリでDocker save archiveとカタログを作る。Updaterはソースをclone/buildしない。イメージconfig digest、archiveのSHA-256、プラットフォーム、版、ソースSHA、非root設定を実物から照合する。
 
 ```bash
-docker save --output /tmp/pudding-image.tar pudding:0.3.1
-python3 scripts/build_pudding_release.py --image-tar /tmp/pudding-image.tar --release 0.3.1 --compatible-from 0.3.0 --revision FULL_COMMIT_SHA --platform linux/amd64 --base-url https://github.com/flamoris-jp/flamoris-pudding/releases/download/v0.3.1 --output candidate
+docker save --output /tmp/pudding-image.tar pudding:0.4.0
+python3 scripts/build_pudding_release.py --image-tar /tmp/pudding-image.tar --release 0.4.0 --compatible-from 0.3.1 --revision FULL_COMMIT_SHA --platform linux/amd64 --base-url https://github.com/flamoris-jp/flamoris-pudding/releases/download/v0.4.0 --output candidate
 ```
 
 生成物はcandidateで、この生成コマンドはGitHub Releaseの公開やUpdaterへの登録を行わない。Dockerのruntime IDとarchive内config digestが異なる場合も、config digestをarchiveから導出する。公開には[配布手順](RELEASING.md)のworkflowを使い、成功したmain CIの同じイメージを検証・アップロード後の取得/ハッシュ照合を経てprereleaseへ公開する。Actions artifactはレビュー用でありUpdaterの配布元ではない。実URLとハッシュを確認してから登録する。

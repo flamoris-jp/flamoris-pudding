@@ -5,7 +5,7 @@
 
 作成・更新：2026-11-08（Asia/Tokyo）。設計版：`pudding-design-v0.3`。
 
-**状態：全体の設計案。** 最初の味の比較・開封・一口・片付け・stdio MCPをPython研究版として実装し、Java/PostgreSQLの単独HTTP/MCP 0.3.1ではAgent別Bearer認証・Updater配布/互換更新・専用常駐トンネルの限定受入れまで進んだ。本文の全ての型・ツール・期待/余韻・TTL・プレミアムを提供したものではない。現行Javaの9ツール・認証・通信制約は[単独サービス手順](STANDALONE_SERVICE.md)、Python照合版は[実装手順](IMPLEMENTATION.md)、固定した数値実験は[実験001](EXPERIMENT_001.md)を正本とする。現在の実装状況は [PROGRESS](../PROGRESS.md)、資料の出典と適用限界は [SOURCES](SOURCES.md) を参照する。
+**状態：全体の設計案。** 最初の味の比較・開封・一口・片付け・stdio MCPをPython研究版として実装し、Java/PostgreSQLの単独HTTP/MCP 0.3.1ではAgent別Bearer認証・Updater配布/互換更新・専用常駐トンネルの限定受入れまで進んだ。0.4.0は期待/余韻とプレミアムのsandboxを追加したが、本文の全ての型・ツール・TTL・商用連携を提供したものではない。Javaの既定9ツール・認証・通信制約は[単独サービス手順](STANDALONE_SERVICE.md)、Python照合版は[実装手順](IMPLEMENTATION.md)、固定した数値実験は[実験001](EXPERIMENT_001.md)を正本とする。現在の実装状況は [PROGRESS](../PROGRESS.md)、資料の出典と適用限界は [SOURCES](SOURCES.md) を参照する。
 
 この文書の研究用セッション寿命と、購入版の在庫保持は区別する。[商用・Agent報酬設計](PREMIUM.md)に人間の購入・Agent認証・承認を、[利用規則とライフサイクル](ETHICS_AND_LIFECYCLE.md)に蓋の廃棄・片付け・違反・ロック・購入14日と暦の1か月の期限を定める。食べ終わりだけでセッションを閉じず、片付けまで行う。購入済みの一個を、研究用の再作成や削除で増減させない。
 

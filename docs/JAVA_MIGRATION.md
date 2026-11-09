@@ -1,4 +1,4 @@
-# Java移植・PostgreSQL対応：単独サービス 0.3.1
+# Java移植・PostgreSQL対応：0.4.0候補 / 実機0.3.1
 
 > **0.4.0実装追記（2026-11-09 JST）**：[sandbox手順](SANDBOX.md)に、人間用API・一個の承認・署名付き模擬取引・休止再開・日次廃棄・審査・永続会計候補・体験モデルと明示移行を追加した。以下の設計案や0.3.1到達点の「未実装」表記は当時の境界を示す。現行ソースの実装と、公開/実機受入れは[進捗](../PROGRESS.md)で区別する。公開ログイン/OAuth、実課金と正式転記、商用受入れは残件。
 
@@ -16,7 +16,7 @@
 | DB初期化 | `V001__research.sql`。管理側による明示的な初回マイグレーション |
 | 実行 | `Main demo` / `migrate-postgres` / `demo-postgres` は信頼する管理側の研究CLI。`ServiceMain` は認証済Agentを解決する単独HTTP/MCPサービス |
 
-Java版はPostgreSQLを正本とする。Python/SQLite版とは接続・二重書込みを行わない。Python版のデータを自動移行する機能はまだない。現在のMCP配膳は、認証済Agentに属する有料購入権のない研究fixtureだけを作る。新鮮な残量を廃棄できる研究用finishを有料在庫へ流用しない。
+Java版はPostgreSQLを正本とする。Python/SQLite版とは接続・二重書込みを行わない。Python版のデータを自動移行する機能はまだない。既定のMCP配膳は、認証済Agentに属する有料購入権のない研究fixtureを作る。0.4.0 sandboxの模擬購入権は明示的なschema 2移行と別の人間APIで扱う。新鮮な残量を廃棄できる研究用finishを有料在庫へ流用しない。
 
 状態は不変のrecordで、各部品の `initial = cup + spoon + consumed + discarded` を検証する。数値は任意精度の分子/分母で演算し、最終q1000のみhalf-up。購入14日・JSTの暦1か月、実行済みの一口の評価時刻と品質、固定した特徴と期限を保存する。
 
@@ -87,7 +87,7 @@ python3 scripts/verify_java.py --postgres
 
 CIは初期化、再起動再送、所有範囲、同じ要求の競合、revision競合、監査失敗時の違反ロールバック、ロック後の片付け、期限ガードと廃棄の冪等性、非対応スキーマの拒否を検証する。
 
-現在は[単独サービス](STANDALONE_SERVICE.md)としてJavaコアを同じアプリ内から呼ぶHTTP/MCP、個別Agent資格情報、DockerとUpdaterカタログ候補を追加している。Pythonのstdio MCPは照合・研究用に残す。0.3.1のRelease公開・実機へのUpdater互換更新・常駐トンネルの22回連続読み取りと既存食事の保持を受け入れた。商品マスタ、人間ログイン/有料承認、決済/返金、正式会計への転記は未実装。研究用Agent資格情報による本人識別と、有料利用の承認は別である。美祥の腐敗試食拒否を維持し、全ての劣化・違反試験は合成データで行う。
+現在は[単独サービス](STANDALONE_SERVICE.md)としてJavaコアを同じアプリ内から呼ぶHTTP/MCP、個別Agent資格情報、DockerとUpdaterカタログ候補を追加している。Pythonのstdio MCPは照合・研究用に残す。0.3.1のRelease公開・実機へのUpdater互換更新・常駐トンネルの22回連続読み取りと既存食事の保持を受け入れた。商品マスタ・人間の一個の承認・模擬決済/返金・永続会計候補は0.4.0 sandboxへ追加した。公開人間ログイン、実決済/返金、正式会計への転記は未実装。研究用Agent資格情報による本人識別と、有料利用の承認は別である。美祥の腐敗試食拒否を維持し、全ての劣化・違反試験は合成データで行う。
 
 参照：[PostgreSQLの行ロック](https://www.postgresql.org/docs/18/explicit-locking.html)、[INSERTと競合](https://www.postgresql.org/docs/18/sql-insert.html)、[pgJDBC配布](https://jdbc.postgresql.org/download/)。
 
