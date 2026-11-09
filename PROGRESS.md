@@ -1,5 +1,14 @@
 # Progress 🍮
 
+## 2026-11-09 — 0.4.0公開・研究モードの互換更新
+
+- [v0.4.0](https://github.com/flamoris-jp/flamoris-pudding/releases/tag/v0.4.0)をdevelopment prereleaseとして公開。ソースは `6c9adec82534612485d057bef3181e02f7cba563`、[公開run](https://github.com/flamoris-jp/flamoris-pudding/actions/runs/42597131103)のverify/publishが成功した。同じmainの[研究CI](https://github.com/flamoris-jp/flamoris-pudding/actions/runs/42539008660)、[Java/PostgreSQL/復元](https://github.com/flamoris-jp/flamoris-pudding/actions/runs/42539008659)、[Docker/Updater/HTTPS](https://github.com/flamoris-jp/flamoris-pudding/actions/runs/42539008671)の成功候補を再ビルドせず使用し、アップロード後の全4ファイルの取得・SHA-256照合も通過した。
+- 公開済みの版付きカタログは `compatible_from=["0.3.1"]`。実機のUpdaterで0.3.1→0.4.0がsucceededとなり、ready/稼働確認も通過。Server Managerでも新しいコンテナーの稼働とホストhealthyを独立確認した。保護された設定ファイルの更新前後ハッシュ・所有者・権限は一致し、直前の0.3.1実行物は停止状態で保持した。
+- カタログのconfig digestとcontainerdストアのruntime image IDの対応は、Updaterの `docker.image.resolve: verified` 記録で確認。配布物と異なる内容の採用を意味しない。
+- 既存の専用常駐トンネルから `pudding.presets.list` を12回連続で実行し、毎回6プリセット（ミルク/チョコを含む）を取得。429・接続エラーはなく、検証中の食事作成・追加消費は行っていない。
+- DB初期化・schema 2移行・sandbox資格情報の導入は実施せず、schema 1/既定9ツールの研究モードを継続。既存食事のUUIDを今回の記録から特定できず、過去2食事の残量・違反・鍵・再送は実機で再照合していない。設定保持・readinessと、隔離CIのDB保持/再送/復元検証とは区別する。
+- 続く実機sandbox導入、既存食事の再照合、復旧/TLS更新、公開認証・実決済・正式会計の残件は[Issue #16](https://github.com/flamoris-jp/flamoris-pudding/issues/16)で追跡する。ホスト固有の配置・ジョブ・資格情報の参照先はprivate運用記録に残す。
+
 ## 2026-11-09 — 0.4.0 sandbox実装と受入れ拡張
 
 - [Issue #14](https://github.com/flamoris-jp/flamoris-pudding/issues/14)、[PR #15](https://github.com/flamoris-jp/flamoris-pudding/pull/15)。人間管理API・固定Agent/鍵世代・不変商品・一注文一個・15分承認・休止再承認・取消・模擬返金を実装。AgentのMCPは有効時16ツール、既定9ツールを保持する。
@@ -8,7 +17,7 @@
 - 期待・好み・mg加重の満足・仮想余韻、ミルク/チョコ、特徴から版付き台詞テンプレートへの変換を追加。実在Agentに違反や劣化試験を付けない。
 - 候補 `3294186` の全CIが成功。実PostgreSQLは既存11＋sandbox18シナリオ、最小権限runtimeで16ツール/購入物開始、全19テーブルとsequenceの別DB復元一致、復元後の再送で行が変わらないことを確認。公開済み0.3.1の実イメージから0.4.0へのUpdater/HTTPS試験も成功。続く候補 `d78c16a` では、移行時の片付け義務保持、未評価の過去の一口、日次100件超の続行を補強し、別資格情報を注入した実プロセス起動を含むsandbox19シナリオと復元がpush CIで成功した。
 - ローカル：Python68、Javaコア18・HTTP/MCP14・設定3、味238/期限25/状態14応答の照合。実行/移行/鍵/人間API/復元と制約を[手順](docs/SANDBOX.md)へ記載。
-- ソースは0.4.0候補。公開・実機版は0.3.1のまま。実課金・一般公開ログイン/OAuth・正式転記・商用条件と実機復旧/TLS更新は未完了。
+- この実装時点では0.4.0候補、公開・実機版は0.3.1。続く0.4.0の公開・研究モード互換更新は上の別項目で確認した。実課金・一般公開ログイン/OAuth・正式転記・商用条件と実機復旧/TLS更新は未完了。
 
 
 ## 2026-11-08 — 文書全体を0.3.1の到達点へ統一

@@ -1,6 +1,6 @@
 # 検証済みイメージの配布
 
-2026-11-08。単独サービスのdevelopment prereleaseを、成功したmain CIの候補から公開する工程。現在の対象は `linux/amd64`。アプリの実機導入・DB作成・HTTPS設定・Updaterへのカタログ登録は別の操作である。
+2026-11-09更新。単独サービスのdevelopment prereleaseを、成功したmain CIの候補から公開する工程。現在の対象は `linux/amd64`。アプリの実機導入・DB作成・HTTPS設定・Updaterへのカタログ登録は別の操作である。
 
 ## 公開済みの版と次の公開
 
@@ -8,10 +8,11 @@
 |---|---|
 | 0.3.0 | 初回のdevelopment prerelease、Updater導入、専用トンネルで試食と片付け |
 | 0.3.1 | 通信セッション429対策、0.3.0からのUpdater互換更新、常駐トンネル22回の連続読み取り |
+| 0.4.0 | sandbox追加を含むdevelopment prerelease公開、schema 1で0.3.1から互換更新、6プリセット・12回の連続読み取り。実機sandboxは未有効 |
 
-0.4.0候補は公開済み0.3.1の実イメージを取得/ハッシュ照合し、schema 1のまま実Updaterで更新検証する。sandboxのschema 2移行は互換更新へ含めない。
+0.4.0は公開済み0.3.1の実イメージを取得/ハッシュ照合し、隔離CIと実機でschema 1のままUpdater更新を確認した。sandboxのschema 2移行は互換更新へ含めない。[公開run](https://github.com/flamoris-jp/flamoris-pudding/actions/runs/42597131103)はverify/publishとも成功した。
 
-0.3.0と0.3.1のタグ/Releaseは公開済み。以下の公開操作を同じ版へ繰り返さない。次の公開ではアプリ版と候補生成の設定を更新し、互換性を検証した旧版だけを指定してmain CIを通す。文書だけの更新はアプリの再公開・再配備を必要としない。現在の配布結果は[進捗](../PROGRESS.md)を参照。
+0.3.0・0.3.1・0.4.0のタグ/Releaseは公開済み。以下の公開操作を同じ版へ繰り返さない。次の公開ではアプリ版と候補生成の設定を更新し、互換性を検証した旧版だけを指定してmain CIを通す。文書だけの更新はアプリの再公開・再配備を必要としない。現在の配布結果は[進捗](../PROGRESS.md)を参照。
 
 ## ソースと候補の対応
 
@@ -68,11 +69,11 @@ Actions artifactは7日保持。候補が失効・削除されている場合は
 
 ## 公開後のUpdater登録
 
-公開済み0.3.1のversion付きカタログURL：
+公開済み0.4.0のversion付きカタログURL：
 
-`https://github.com/flamoris-jp/flamoris-pudding/releases/download/v0.3.1/catalog.json`
+`https://github.com/flamoris-jp/flamoris-pudding/releases/download/v0.4.0/catalog.json`
 
-0.3.1のカタログは `compatible_from=["0.3.0"]` を明示し、実際の更新と既存設定・DB状態の保持を確認した。新規導入と互換更新は別操作であり、既存DBへ初回DDLを再実行しない。別の版を公開した場合は、その版の実ファイル取得とハッシュを確認してから登録する。
+0.4.0のカタログは `compatible_from=["0.3.1"]` を明示する。実機では設定ファイル保持・readiness・連続読み取りを確認し、既存食事の再照合は残件としている。DB状態/再送保持は隔離CIで検証済み。新規導入と互換更新は別操作であり、既存DBへ初回DDLを再実行しない。別の版を公開した場合は、その版の実ファイル取得とハッシュを確認してから登録する。
 
 prereleaseをLatestのURLで代用しない。DB/runtimeロールとHTTPS入口は[単独サービス手順](STANDALONE_SERVICE.md)に従って用意する。この公開工程はサーバーの設定やDBを変更しない。
 
