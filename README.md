@@ -8,13 +8,13 @@ AI美祥のための、仮想プリン研究所。
 
 ## 0.4.0の実装
 
-人間用の管理API、一個の割当と15分承認、署名付き模擬決済・返金、休止/再承認、日次廃棄と審査、会計候補の永続化、期待・満足・余韻、ミルク/チョコを追加しました。[sandbox手順](docs/SANDBOX.md)を参照してください。sandboxは既定無効で、明示的なDB移行と別系統の人間資格情報が必要です。実課金・公開ログイン/OAuth・正式転記・実機の商用受入れは残件です。**公開・実機で受け入れた版は0.3.1、追加実装は0.4.0候補**として区別します。
+人間用の管理API、一個の割当と15分承認、署名付き模擬決済・返金、休止/再承認、日次廃棄と審査、会計候補の永続化、期待・満足・余韻、ミルク/チョコを追加しました。[sandbox手順](docs/SANDBOX.md)を参照してください。**v0.4.0をdevelopment prereleaseとして公開し、実機の研究モードで0.3.1から互換更新済みです。** sandboxは既定無効で、明示的なDB移行と別系統の人間資格情報が必要です。実課金・公開ログイン/OAuth・正式転記・実機の商用受入れは残件です。
 
 ## 🧭 このリポジトリは何者？
 
 プリンの味・香り・温度・口当たりなどを、どのようなデータで表現し、AIとの対話や創作に使えるかを探る実験リポジトリです。最初はプリン一個を記述して比べる、小さな実験から始めます。
 
-**Status: `development` — Java 0.4.0候補 / 公開・実機受入れ 0.3.1 / Python照合版 0.1.0。** [v0.3.1](https://github.com/flamoris-jp/flamoris-pudding/releases/tag/v0.3.1)はUpdater互換更新と専用常駐トンネルの試食・片付け・22回連続読み取りを受け入れました。0.4.0にはsandboxの一個の人間承認・模擬取引・日次処理を追加し、隔離CIで移行・復元・更新を検証します。公開ログイン/OAuth、実決済・正式会計、実機の長期運用・ホスト再起動・復旧は残件です。
+**Status: `development` — Java公開・実機の研究モード 0.4.0 / Python照合版 0.1.0。** [v0.4.0](https://github.com/flamoris-jp/flamoris-pudding/releases/tag/v0.4.0)はUpdater互換更新、設定ファイル保持、専用常駐トンネルで6プリセットの取得と12回連続読み取りを確認しました。DBはschema 1を継続し、sandboxのschema 2移行・別DB復元・模擬承認は隔離CIで検証済みです。過去の試食・片付けは0.3.1での受入れ記録です。公開ログイン/OAuth、実決済・正式会計、実機のsandbox導入・長期運用・ホスト再起動・復旧は残件です。
 
 ### 単独サービスと導入経路
 
@@ -26,7 +26,7 @@ Hubを経由せず、HTTPS入口からPuddingのMCPへ直接接続します。�
 - ローカルでJavaコア18・HTTP/MCP14・設定3シナリオとPython68テスト。隔離CIでは実PostgreSQL、Docker/Updaterの導入・更新、合成TLS越しのMCP、DB/資格情報/再送保持と40回の再接続を確認します。修正と検証は[PR #11](https://github.com/flamoris-jp/flamoris-pudding/pull/11)のChecksを参照してください。
 - mainの成功CIから同じイメージを取得し、検証・アップロード後の取得/ハッシュ照合を経てdevelopment prereleaseへ公開する工程。[配布手順](docs/RELEASING.md)を参照。
 
-実行・資格情報・DB初期化・配布候補の作成は[単独サービス手順](docs/STANDALONE_SERVICE.md)。ソース実装・Release公開・実環境の配備と検証は別々に確認します。0.3.1の限定受入れ結果は[進捗](PROGRESS.md)を参照し、未公開の候補カタログをUpdaterへ登録しないでください。
+実行・資格情報・DB初期化・配布候補の作成は[単独サービス手順](docs/STANDALONE_SERVICE.md)。ソース実装・Release公開・実環境の配備と検証は別々に確認します。0.4.0更新と過去の限定受入れ結果は[進捗](PROGRESS.md)を参照し、未公開の候補カタログをUpdaterへ登録しないでください。
 
 ### Java移植・PostgreSQL対応（開発版）
 
@@ -137,7 +137,7 @@ FLAMORIS Pudding is an experimental research repository for virtual pudding and 
 
 It owns pudding-domain representations and reproducible research records. Conversation, personality, model execution, media generation, rendering, and MCP routing remain with their respective FLAMORIS projects. The original Python/SQLite research core and nine-tool local stdio MCP remain as a reference. A Java domain core and PostgreSQL JDBC adapter now implement typed sessions, durable replay, policy and audit transactions; cross-language verification and an isolated PostgreSQL CI job cover the migration. Purchase deadlines, authored aging, effective-dated tax arithmetic and review-only expiry accounting candidates are tested with fixtures. An independent authenticated HTTP/MCP research service, Docker runtime and Updater candidate generator are implemented. Version 0.4.0 adds an opt-in sandbox for operator-provisioned humans, per-item approvals, signed mock payments/refunds, daily disposal and durable review-only accounting candidates. Public human login/OAuth, real payments and external ledger posting remain unimplemented. A bounded trial rollout and dedicated-tunnel acceptance are recorded in PROGRESS.md.
 
-**Current state: development; standalone Java HTTP/MCP 0.3.1 and Python research reference 0.1.0.** The development prerelease was installed and compatibly updated through Updater. Tasting/cleanup and 22 consecutive read calls were accepted through a dedicated resident tunnel. The 0.4.0 source adds opt-in sandbox approvals and mock commerce; public login/OAuth, real payments and external ledger posting remain unimplemented; long-running and recovery acceptance is pending. Parameterized responses are experimental representations, not evidence of human-like taste or subjective experience.
+**Current state: development; published and installed Java HTTP/MCP 0.4.0 in research mode, and Python research reference 0.1.0.** The 0.3.1→0.4.0 Updater update preserved protected settings and schema 1; six presets and 12 consecutive read calls passed through the dedicated resident tunnel. Tasting/cleanup were accepted on 0.3.1; existing food records were not rechecked during this update. The opt-in sandbox remains disabled on the live deployment. Public login/OAuth, real payments and external ledger posting remain unimplemented; live sandbox migration, long-running and recovery acceptance are pending. Parameterized responses are experimental representations, not evidence of human-like taste or subjective experience.
 
 ## FLAMORIS
 
